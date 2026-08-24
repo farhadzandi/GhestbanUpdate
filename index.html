@@ -636,12 +636,17 @@
 
       <div class="field" id="settingsUpdateAnchor">
         <label>⬆️ بروزرسانی برنامه</label>
-        <div id="updateStatusLine" class="mini-status">نسخه نصب‌شده: ۳٫۹٫۰</div>
+        <div id="updateStatusLine" class="mini-status">نسخه نصب‌شده: ۳٫۹٫۱</div>
+        <div id="availableUpdateNotes" style="display:none; margin-top:8px; padding:10px; border:1px dashed var(--paper-line); border-radius:10px; font-size:11px; line-height:1.9;"></div>
         <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:8px;">
           <button class="ghost small" id="btnCheckUpdate">بررسی بروزرسانی</button>
           <button class="primary small" id="btnApplyUpdate" style="display:none;">نصب نسخه آماده</button>
         </div>
-        <div style="font-size:10.5px; color:var(--ink-soft); margin-top:6px;">عدم دسترسی به اینترنت یا GitHub هیچ مانعی برای استفاده آفلاین از قسط‌بان ایجاد نمی‌کند.</div>
+        <details id="updateHistoryDetails" style="margin-top:10px;">
+          <summary style="cursor:pointer; font-size:11px; font-weight:700;">🧾 تاریخچه تغییرات نسخه‌ها</summary>
+          <div id="updateHistoryList" style="margin-top:8px;"></div>
+        </details>
+        <div style="font-size:10.5px; color:var(--ink-soft); margin-top:6px;">عدم دسترسی به اینترنت یا GitHub هیچ مانعی برای استفاده آفلاین از قسط‌بان ایجاد نمی‌کند. بروزرسانی فقط هنگام دسترسی شبکه بررسی و با تأیید شما نصب می‌شود.</div>
       </div>
 
       <div class="field">
@@ -1326,7 +1331,7 @@
 (function(){
   "use strict";
   const STORE_KEY = "installments-ledger-v1";
-  const APP_VERSION = "3.9.0";
+  const APP_VERSION = "3.9.1";
   const APP_SCHEMA_VERSION = 1;
   const SYNC_META_KEY = "installments-sync-meta-v1";
   const RECOVERY_KEY = "installments-recovery-snapshot-v1";
@@ -3774,6 +3779,23 @@
   let swRegistration = null;
   let updateReadyWorker = null;
   let latestVersionInfo = null;
+  const CANONICAL_APP_URL = 'https://farhadzandi.github.io/GhestbanUpdate/';
+  const RELEASE_HISTORY = [
+    {version:'3.9.1',released:'2026-08-24',title:'مرکز بروزرسانی و تاریخچه نسخه‌ها',changes:[
+      'نمایش تغییرات نسخه جدید پیش از نصب بروزرسانی.',
+      'افزودن تاریخچه بروزرسانی‌ها داخل تنظیمات برنامه.',
+      'آماده‌سازی مسیر انتشار رسمی از GitHub Pages برای بروزرسانی PWA روی کامپیوتر.',
+      'حفظ کامل معماری Offline-First؛ قطع اینترنت مانع استفاده از بخش‌های مالی نیست.',
+      'بهبود پیام‌های وضعیت بروزرسانی و تفکیک حالت فایل محلی از PWA نصب‌شده.'
+    ]},
+    {version:'3.9.0',released:'2026-08-24',title:'Offline Reliability & Safe Sync',changes:[
+      'پایداری Offline-First و ادامه کامل کار بدون اینترنت.',
+      'Deferred GitHub Backup و تشخیص وضعیت دسترسی واقعی به GitHub.',
+      'Snapshot بازیابی پیش از Pull و بروزرسانی.',
+      'Push آگاه از Conflict و جلوگیری از بازنویسی ناخواسته داده Remote.',
+      'اصلاح Undo/Redo برای درآمد و هزینه و حذف Auto-confirm قطعی پرداخت چهارروزه.'
+    ]}
+  ];
 
   function loadGithubConfig(){
     try{ return JSON.parse(localStorage.getItem(GITHUB_KEY)) || {}; }catch(e){ return {}; }
@@ -3947,22 +3969,62 @@
   }
 
   function updateUpdateStatus(text, cls){ const el=document.getElementById('updateStatusLine'); if(!el)return; el.textContent=text; el.className='mini-status '+(cls||''); }
+  function releaseChangesHtml(info){
+    if(!info) return '';
+    const arr=Array.isArray(info.changes)?info.changes:[];
+    const title=info.title?`<div style="font-weight:800; margin-bottom:4px;">${escapeHtml(info.title)}</div>`:'';
+    const notes=arr.length?`<ul style="margin:4px 18px 0 0; padding:0;">${arr.map(x=>`<li>${escapeHtml(x)}</li>`).join('')}</ul>`:(info.notes?`<div>${escapeHtml(info.notes)}</div>`:'');
+    return title+notes;
+  }
+  function showAvailableUpdateNotes(info){
+    const el=document.getElementById('availableUpdateNotes'); if(!el)return;
+    if(!info){ el.style.display='none'; el.innerHTML=''; return; }
+    el.style.display='block';
+    el.innerHTML=`<div style="font-weight:800; margin-bottom:4px;">تغییرات نسخه ${escapeHtml(toFa(info.version||''))}</div>${releaseChangesHtml(info)}${info.released?`<div style="margin-top:6px; color:var(--ink-soft);">تاریخ انتشار: ${escapeHtml(info.released)}</div>`:''}`;
+  }
+  function renderUpdateHistory(remoteHistory){
+    const el=document.getElementById('updateHistoryList'); if(!el)return;
+    const source=Array.isArray(remoteHistory)&&remoteHistory.length?remoteHistory:RELEASE_HISTORY;
+    el.innerHTML=source.map(r=>`<div style="padding:9px 0; border-bottom:1px dashed var(--paper-line);"><div style="font-weight:800;">نسخه ${escapeHtml(toFa(r.version))}${r.title?' — '+escapeHtml(r.title):''}</div>${releaseChangesHtml(r)}${r.released?`<div style="font-size:10px; color:var(--ink-soft); margin-top:4px;">${escapeHtml(r.released)}</div>`:''}</div>`).join('');
+  }
+  async function refreshReleaseHistory(){
+    renderUpdateHistory();
+    if(!navigator.onLine) return;
+    try{
+      const url = /^https?:$/.test(location.protocol) ? `./updates.json?t=${Date.now()}` : `${CANONICAL_APP_URL}updates.json?t=${Date.now()}`;
+      const res=await fetchWithTimeout(url,{cache:'no-store'},6500); if(!res.ok) return;
+      const data=await res.json(); const list=Array.isArray(data)?data:(Array.isArray(data.releases)?data.releases:null);
+      if(list&&list.length){ localStorage.setItem('qestban-release-history',JSON.stringify(list)); renderUpdateHistory(list); }
+    }catch(e){
+      try{ const cached=JSON.parse(localStorage.getItem('qestban-release-history')||'null'); if(Array.isArray(cached)) renderUpdateHistory(cached); }catch(_){}
+    }
+  }
   function showPreparedUpdate(worker){
     updateReadyWorker=worker; document.getElementById('btnApplyUpdate').style.display='inline-flex';
     const v=latestVersionInfo&&latestVersionInfo.version?latestVersionInfo.version:'جدید';
     updateUpdateStatus(`نسخه ${toFa(v)} آماده نصب است. قبل از نصب، Snapshot بازیابی از داده‌ها ساخته می‌شود.`,'ok');
+    showAvailableUpdateNotes(latestVersionInfo);
   }
   async function checkForAppUpdate(silent){
     if(!navigator.onLine){ if(!silent) updateUpdateStatus('آفلاین هستید؛ بررسی بروزرسانی به بعد موکول شد.','warn'); return; }
     try{
       if(!silent) updateUpdateStatus('در حال بررسی نسخه جدید...','');
-      const res=await fetchWithTimeout(`./version.json?t=${Date.now()}`,{cache:'no-store'},6500); if(!res.ok) throw new Error('version.json در دسترس نیست');
+      const manifestUrl = /^https?:$/.test(location.protocol) ? `./version.json?t=${Date.now()}` : `${CANONICAL_APP_URL}version.json?t=${Date.now()}`;
+      const res=await fetchWithTimeout(manifestUrl,{cache:'no-store'},6500); if(!res.ok) throw new Error('version.json در دسترس نیست');
       const info=await res.json(); latestVersionInfo=info;
       if(compareVersions(info.version,APP_VERSION)>0){
-        updateUpdateStatus(`نسخه ${toFa(info.version)} منتشر شده است؛ در حال آماده‌سازی فایل‌های بروزرسانی...`,'ok');
-        if(swRegistration){ await swRegistration.update(); if(swRegistration.waiting) showPreparedUpdate(swRegistration.waiting); }
-        if(!silent) syncPanelShowResult(true,'بروزرسانی موجود',`نسخه ${escapeHtml(toFa(info.version))} موجود است.<br>${escapeHtml(info.notes||'')}<br>پس از آماده‌شدن Service Worker، دکمه «نصب نسخه آماده» فعال می‌شود.`);
-      }else updateUpdateStatus(`نسخه ${toFa(APP_VERSION)} به‌روز است.`,'ok');
+        showAvailableUpdateNotes(info);
+        if(/^https?:$/.test(location.protocol)){
+          updateUpdateStatus(`نسخه ${toFa(info.version)} منتشر شده است؛ در حال آماده‌سازی فایل‌های بروزرسانی...`,'ok');
+          if(swRegistration){ await swRegistration.update(); if(swRegistration.waiting) showPreparedUpdate(swRegistration.waiting); }
+        }else{
+          updateUpdateStatus(`نسخه ${toFa(info.version)} موجود است؛ برای بروزرسانی خودکار، قسط‌بان را به‌صورت PWA از GitHub Pages نصب کنید.`,'warn');
+        }
+        if(!silent) syncPanelShowResult(true,'بروزرسانی موجود',`نسخه ${escapeHtml(toFa(info.version))} موجود است.<br>${releaseChangesHtml(info)}<br>${/^https?:$/.test(location.protocol)?'پس از آماده‌شدن Service Worker، دکمه «نصب نسخه آماده» فعال می‌شود.':`نسخه فایل محلی نمی‌تواند خودش را جایگزین کند. نسخه نصب‌شده از <b>GitHub Pages</b> قابلیت بروزرسانی خودکار دارد.`}`);
+      }else{
+        showAvailableUpdateNotes(null);
+        updateUpdateStatus(`نسخه ${toFa(APP_VERSION)} به‌روز است.`,'ok');
+      }
     }catch(e){ if(!silent) updateUpdateStatus('بررسی آنلاین فعلاً ممکن نیست؛ برنامه آفلاین بدون مشکل ادامه می‌دهد.','warn'); }
   }
   document.getElementById('btnCheckUpdate').onclick=()=>checkForAppUpdate(false);
@@ -3986,6 +4048,7 @@
     refreshConnectivity(true); setTimeout(()=>checkForAppUpdate(true),1800);
   }
   loadGithubUIFromConfig();
+  refreshReleaseHistory();
   document.getElementById('btnImport').onclick = () => document.getElementById('fileImport').click();
   document.getElementById('fileImport').addEventListener('change', (e) => {
     const file = e.target.files[0];
