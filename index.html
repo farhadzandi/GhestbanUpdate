@@ -512,7 +512,7 @@
     #printReport .pr-meta{font-size:11px; color:#444; margin-bottom:16px;}
   }
 </style>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script async src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 </head>
 <body>
 <div id="printReport" style="display:none;"></div>
@@ -636,7 +636,7 @@
 
       <div class="field" id="settingsUpdateAnchor">
         <label>⬆️ بروزرسانی برنامه</label>
-        <div id="updateStatusLine" class="mini-status">نسخه نصب‌شده: ۳٫۹٫۱</div>
+        <div id="updateStatusLine" class="mini-status">نسخه اجراشده: ۳٫۹٫۲</div>
         <div id="availableUpdateNotes" style="display:none; margin-top:8px; padding:10px; border:1px dashed var(--paper-line); border-radius:10px; font-size:11px; line-height:1.9;"></div>
         <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:8px;">
           <button class="ghost small" id="btnCheckUpdate">بررسی بروزرسانی</button>
@@ -646,7 +646,7 @@
           <summary style="cursor:pointer; font-size:11px; font-weight:700;">🧾 تاریخچه تغییرات نسخه‌ها</summary>
           <div id="updateHistoryList" style="margin-top:8px;"></div>
         </details>
-        <div style="font-size:10.5px; color:var(--ink-soft); margin-top:6px;">عدم دسترسی به اینترنت یا GitHub هیچ مانعی برای استفاده آفلاین از قسط‌بان ایجاد نمی‌کند. بروزرسانی فقط هنگام دسترسی شبکه بررسی و با تأیید شما نصب می‌شود.</div>
+        <div style="font-size:10.5px; color:var(--ink-soft); margin-top:6px;">عدم دسترسی به اینترنت یا GitHub هیچ مانعی برای استفاده آفلاین از قسط‌بان ایجاد نمی‌کند. در ویندوز، همان فایل HTML مستقل اجرا می‌شود؛ هنگام اتصال اینترنت، برنامه فقط وجود نسخه جدید را بررسی و با تأیید شما فایل جدید را دانلود می‌کند.</div>
       </div>
 
       <div class="field">
@@ -881,7 +881,8 @@
         تقویم شمسی و ساعت گرد با انتخابگر، بدون تایپ دستی<br>
         معماری Offline-First؛ ثبت و گزارش‌های اصلی بدون اینترنت کار می‌کنند<br>
         سینک و بک‌آپ Deferred با GitHub پس از بازگشت اتصال<br>
-        بروزرسانی کنترل‌شده PWA از GitHub Pages / Service Worker<br>
+        بروزرسانی PWA برای موبایل از GitHub Pages / Service Worker<br>
+        بروزرسانی ویندوز با بررسی آنلاین و دانلود فایل HTML جدید<br>
         فونت IRANSansX (تعبیه‌شده، آفلاین)
       </div>
     </div>
@@ -1331,7 +1332,7 @@
 (function(){
   "use strict";
   const STORE_KEY = "installments-ledger-v1";
-  const APP_VERSION = "3.9.1";
+  const APP_VERSION = "3.9.2";
   const APP_SCHEMA_VERSION = 1;
   const SYNC_META_KEY = "installments-sync-meta-v1";
   const RECOVERY_KEY = "installments-recovery-snapshot-v1";
@@ -3779,8 +3780,21 @@
   let swRegistration = null;
   let updateReadyWorker = null;
   let latestVersionInfo = null;
-  const CANONICAL_APP_URL = 'https://farhadzandi.github.io/GhestbanUpdate/';
+  const UPDATE_RAW_BASE = 'https://raw.githubusercontent.com/farhadzandi/GhestbanUpdate/main/';
+  const IS_GITHUB_PAGES = location.hostname === 'farhadzandi.github.io' && location.pathname.toLowerCase().includes('/ghestbanupdate');
+  let fileModeUpdateAvailable = false;
+  function updateSourceUrl(file){
+    const q=`t=${Date.now()}`;
+    return IS_GITHUB_PAGES ? `./${file}?${q}` : `${UPDATE_RAW_BASE}${file}?${q}`;
+  }
   const RELEASE_HISTORY = [
+    {version:'3.9.2',released:'2026-08-24',title:'نسخه ساده ویندوز و بروزرسانی مستقیم',changes:[
+      'ویندوز همچنان با یک فایل HTML مستقل و بدون نصب، Python، Node یا سرویس محلی اجرا می‌شود.',
+      'فایل HTML در حالت آفلاین تمام امکانات اصلی مالی را حفظ می‌کند.',
+      'هنگام اتصال اینترنت، نسخه جدید از کانال عمومی GhestbanUpdate بررسی و تغییرات آن نمایش داده می‌شود.',
+      'در ویندوز، با تأیید کاربر یک بکاپ JSON و سپس فایل HTML نسخه جدید دانلود می‌شود.',
+      'PWA برای موبایل حفظ شده و بروزرسانی آن از GitHub Pages انجام می‌شود.'
+    ]},
     {version:'3.9.1',released:'2026-08-24',title:'مرکز بروزرسانی و تاریخچه نسخه‌ها',changes:[
       'نمایش تغییرات نسخه جدید پیش از نصب بروزرسانی.',
       'افزودن تاریخچه بروزرسانی‌ها داخل تنظیمات برنامه.',
@@ -3991,7 +4005,7 @@
     renderUpdateHistory();
     if(!navigator.onLine) return;
     try{
-      const url = /^https?:$/.test(location.protocol) ? `./updates.json?t=${Date.now()}` : `${CANONICAL_APP_URL}updates.json?t=${Date.now()}`;
+      const url = updateSourceUrl('updates.json');
       const res=await fetchWithTimeout(url,{cache:'no-store'},6500); if(!res.ok) return;
       const data=await res.json(); const list=Array.isArray(data)?data:(Array.isArray(data.releases)?data.releases:null);
       if(list&&list.length){ localStorage.setItem('qestban-release-history',JSON.stringify(list)); renderUpdateHistory(list); }
@@ -4000,7 +4014,8 @@
     }
   }
   function showPreparedUpdate(worker){
-    updateReadyWorker=worker; document.getElementById('btnApplyUpdate').style.display='inline-flex';
+    updateReadyWorker=worker; fileModeUpdateAvailable=false;
+    const btn=document.getElementById('btnApplyUpdate'); btn.style.display='inline-flex'; btn.textContent='نصب نسخه آماده';
     const v=latestVersionInfo&&latestVersionInfo.version?latestVersionInfo.version:'جدید';
     updateUpdateStatus(`نسخه ${toFa(v)} آماده نصب است. قبل از نصب، Snapshot بازیابی از داده‌ها ساخته می‌شود.`,'ok');
     showAvailableUpdateNotes(latestVersionInfo);
@@ -4009,26 +4024,59 @@
     if(!navigator.onLine){ if(!silent) updateUpdateStatus('آفلاین هستید؛ بررسی بروزرسانی به بعد موکول شد.','warn'); return; }
     try{
       if(!silent) updateUpdateStatus('در حال بررسی نسخه جدید...','');
-      const manifestUrl = /^https?:$/.test(location.protocol) ? `./version.json?t=${Date.now()}` : `${CANONICAL_APP_URL}version.json?t=${Date.now()}`;
-      const res=await fetchWithTimeout(manifestUrl,{cache:'no-store'},6500); if(!res.ok) throw new Error('version.json در دسترس نیست');
+      const res=await fetchWithTimeout(updateSourceUrl('version.json'),{cache:'no-store'},6500); if(!res.ok) throw new Error('version.json در دسترس نیست');
       const info=await res.json(); latestVersionInfo=info;
       if(compareVersions(info.version,APP_VERSION)>0){
         showAvailableUpdateNotes(info);
-        if(/^https?:$/.test(location.protocol)){
-          updateUpdateStatus(`نسخه ${toFa(info.version)} منتشر شده است؛ در حال آماده‌سازی فایل‌های بروزرسانی...`,'ok');
+        const btn=document.getElementById('btnApplyUpdate');
+        if(IS_GITHUB_PAGES){
+          fileModeUpdateAvailable=false;
+          updateUpdateStatus(`نسخه ${toFa(info.version)} منتشر شده است؛ در حال آماده‌سازی بروزرسانی PWA...`,'ok');
           if(swRegistration){ await swRegistration.update(); if(swRegistration.waiting) showPreparedUpdate(swRegistration.waiting); }
+        }else if(location.protocol==='file:'){
+          fileModeUpdateAvailable=true; updateReadyWorker=null;
+          btn.style.display='inline-flex'; btn.textContent='دانلود نسخه جدید';
+          updateUpdateStatus(`نسخه ${toFa(info.version)} موجود است؛ تغییرات را ببینید و فایل جدید را دانلود کنید.`,'ok');
         }else{
-          updateUpdateStatus(`نسخه ${toFa(info.version)} موجود است؛ برای بروزرسانی خودکار، قسط‌بان را به‌صورت PWA از GitHub Pages نصب کنید.`,'warn');
+          fileModeUpdateAvailable=true; updateReadyWorker=null;
+          btn.style.display='inline-flex'; btn.textContent='دانلود نسخه جدید';
+          updateUpdateStatus(`نسخه ${toFa(info.version)} موجود است.`,'ok');
         }
-        if(!silent) syncPanelShowResult(true,'بروزرسانی موجود',`نسخه ${escapeHtml(toFa(info.version))} موجود است.<br>${releaseChangesHtml(info)}<br>${/^https?:$/.test(location.protocol)?'پس از آماده‌شدن Service Worker، دکمه «نصب نسخه آماده» فعال می‌شود.':`نسخه فایل محلی نمی‌تواند خودش را جایگزین کند. نسخه نصب‌شده از <b>GitHub Pages</b> قابلیت بروزرسانی خودکار دارد.`}`);
+        if(!silent) syncPanelShowResult(true,'بروزرسانی موجود',`نسخه ${escapeHtml(toFa(info.version))} موجود است.<br>${releaseChangesHtml(info)}<br>${IS_GITHUB_PAGES?'پس از آماده‌شدن Service Worker، دکمه نصب فعال می‌شود.':'با «دانلود نسخه جدید»، ابتدا بکاپ JSON گرفته می‌شود و سپس فایل HTML جدید دانلود خواهد شد.'}`);
       }else{
+        fileModeUpdateAvailable=false; updateReadyWorker=null;
+        const btn=document.getElementById('btnApplyUpdate'); btn.style.display='none'; btn.textContent='نصب نسخه آماده';
         showAvailableUpdateNotes(null);
         updateUpdateStatus(`نسخه ${toFa(APP_VERSION)} به‌روز است.`,'ok');
       }
     }catch(e){ if(!silent) updateUpdateStatus('بررسی آنلاین فعلاً ممکن نیست؛ برنامه آفلاین بدون مشکل ادامه می‌دهد.','warn'); }
   }
   document.getElementById('btnCheckUpdate').onclick=()=>checkForAppUpdate(false);
-  document.getElementById('btnApplyUpdate').onclick=()=>{
+  document.getElementById('btnApplyUpdate').onclick=async()=>{
+    const btn=document.getElementById('btnApplyUpdate');
+    if(fileModeUpdateAvailable){
+      const target=(latestVersionInfo&&latestVersionInfo.version)||'نسخه جدید';
+      if(!confirm(`نسخه ${toFa(target)} دانلود شود؟
+برای ایمنی ابتدا یک بکاپ JSON از اطلاعات فعلی دانلود می‌شود و سپس فایل HTML جدید دریافت خواهد شد.`)) return;
+      btn.disabled=true; updateUpdateStatus('در حال تهیه بکاپ و دانلود نسخه جدید...','');
+      try{
+        downloadBackup();
+        const res=await fetchWithTimeout(updateSourceUrl('index.html'),{cache:'no-store'},20000);
+        if(!res.ok) throw new Error('فایل نسخه جدید در دسترس نیست');
+        const html=await res.text();
+        if(!html || !html.includes('<title>قسط‌بان</title>')) throw new Error('فایل دریافت‌شده معتبر نیست');
+        const blob=new Blob([html],{type:'text/html;charset=utf-8'});
+        const url=URL.createObjectURL(blob); const a=document.createElement('a');
+        const currentName=location.protocol==='file:'?decodeURIComponent((location.pathname.split('/').pop()||'Ghestban.html')):'Ghestban.html';
+        a.href=url; a.download=currentName; document.body.appendChild(a); a.click(); a.remove();
+        setTimeout(()=>URL.revokeObjectURL(url),1500);
+        updateUpdateStatus(`نسخه ${toFa(target)} دانلود شد. فایل جدید را جایگزین فایل قبلی کنید و سپس آن را باز کنید.`,'ok');
+        toast('فایل نسخه جدید دانلود شد');
+      }catch(err){
+        updateUpdateStatus(`دانلود بروزرسانی انجام نشد: ${(err&&err.message)||'خطای نامشخص'}`,'warn');
+      }finally{ btn.disabled=false; }
+      return;
+    }
     if(!updateReadyWorker){ toast('نسخه جدید هنوز کامل آماده نشده است'); return; }
     createRecoverySnapshot(`قبل از بروزرسانی از ${APP_VERSION} به ${(latestVersionInfo&&latestVersionInfo.version)||'نسخه جدید'}`);
     sessionStorage.setItem('qestban-update-reload','1'); updateReadyWorker.postMessage({type:'SKIP_WAITING'}); updateUpdateStatus('در حال فعال‌سازی نسخه جدید...','ok');
