@@ -1,0 +1,18 @@
+{
+  "releases": [
+    {
+      "version": "3.9.0",
+      "build": 390,
+      "schemaVersion": 1,
+      "released": "2026-08-24",
+      "title": "Offline Reliability & Safe Sync",
+      "changes": [
+        "پایداری Offline-First و ادامه کامل کار بدون اینترنت.",
+        "Deferred GitHub Backup و تشخیص وضعیت دسترسی واقعی به GitHub.",
+        "Snapshot بازیابی پیش از Pull و بروزرسانی.",
+        "Push آگاه از Conflict و جلوگیری از بازنویسی ناخواسته داده Remote.",
+        "اصلاح Undo/Redo برای درآمد و هزینه و حذف Auto-confirm قطعی پرداخت چهارروزه."
+      ]
+    }
+  ]
+}
