@@ -511,8 +511,25 @@
     #printReport h2{font-size:14px; margin:18px 0 8px; page-break-after: avoid;}
     #printReport .pr-meta{font-size:11px; color:#444; margin-bottom:16px;}
   }
+
+  /* v3.10 — bank accounts, fast finance entry, filters & pagination */
+  .bank-account-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(270px,1fr));gap:9px;}
+  .bank-account-card{border:1px solid var(--paper-line);background:var(--card);border-radius:8px;padding:10px 12px;display:flex;flex-direction:column;gap:6px;}
+  .bank-account-card.inactive{opacity:.6;}
+  .bac-head{display:flex;align-items:center;gap:8px;}.bac-title{font-weight:800;flex:1}.bac-meta{font-size:11px;color:var(--ink-soft)}
+  .bac-line{font-size:12px;display:flex;align-items:center;gap:7px;flex-wrap:wrap}.bac-key{color:var(--ink-soft);min-width:62px}.bac-value{direction:ltr;unicode-bidi:embed;font-family:monospace;font-weight:700}
+  .bac-actions{display:flex;gap:5px;flex-wrap:wrap;margin-top:4px}
+  .finance-toolbar{border:1px solid var(--paper-line);background:color-mix(in srgb,var(--card) 82%,transparent);border-radius:8px;padding:8px;margin-bottom:9px;}
+  .finance-toolbar-top{display:flex;gap:7px;align-items:center;flex-wrap:wrap}.finance-toolbar-top input{flex:1;min-width:180px}.finance-toolbar-top select{width:auto;min-width:90px}
+  .finance-filter-details{margin-top:7px}.finance-filter-details summary{cursor:pointer;font-size:11.5px;font-weight:700;color:var(--ink-soft);user-select:none}
+  .finance-filter-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:7px;margin-top:8px}.finance-filter-grid .field{margin:0}.finance-filter-grid label{font-size:10.5px}
+  .finance-summaryline{font-size:11px;color:var(--ink-soft);margin:6px 0 2px;display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap}
+  .finance-pager{display:flex;align-items:center;justify-content:center;gap:7px;margin-top:9px;flex-wrap:wrap}.finance-pager .page-info{font-size:11px;color:var(--ink-soft);min-width:120px;text-align:center}
+  .advanced-payment{border-top:1px dashed var(--paper-line);margin-top:7px;padding-top:7px}.advanced-payment summary{cursor:pointer;font-size:12px;font-weight:800;color:var(--ink-soft)}
+  .account-select-note{font-size:10px;color:var(--ink-soft);margin-top:3px}
+
 </style>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script async src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 </head>
 <body>
 <div id="printReport" style="display:none;"></div>
@@ -636,7 +653,7 @@
 
       <div class="field" id="settingsUpdateAnchor">
         <label>⬆️ بروزرسانی برنامه</label>
-        <div id="updateStatusLine" class="mini-status">نسخه نصب‌شده: ۳٫۹٫۱</div>
+        <div id="updateStatusLine" class="mini-status">نسخه اجراشده: ۳٫۹٫۲</div>
         <div id="availableUpdateNotes" style="display:none; margin-top:8px; padding:10px; border:1px dashed var(--paper-line); border-radius:10px; font-size:11px; line-height:1.9;"></div>
         <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:8px;">
           <button class="ghost small" id="btnCheckUpdate">بررسی بروزرسانی</button>
@@ -646,7 +663,7 @@
           <summary style="cursor:pointer; font-size:11px; font-weight:700;">🧾 تاریخچه تغییرات نسخه‌ها</summary>
           <div id="updateHistoryList" style="margin-top:8px;"></div>
         </details>
-        <div style="font-size:10.5px; color:var(--ink-soft); margin-top:6px;">عدم دسترسی به اینترنت یا GitHub هیچ مانعی برای استفاده آفلاین از قسط‌بان ایجاد نمی‌کند. بروزرسانی فقط هنگام دسترسی شبکه بررسی و با تأیید شما نصب می‌شود.</div>
+        <div style="font-size:10.5px; color:var(--ink-soft); margin-top:6px;">عدم دسترسی به اینترنت یا GitHub هیچ مانعی برای استفاده آفلاین از قسط‌بان ایجاد نمی‌کند. در ویندوز، همان فایل HTML مستقل اجرا می‌شود؛ هنگام اتصال اینترنت، برنامه فقط وجود نسخه جدید را بررسی و با تأیید شما فایل جدید را دانلود می‌کند.</div>
       </div>
 
       <div class="field">
@@ -757,19 +774,82 @@
     </div>
 
     <section class="block">
-      <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:12px;">
-        <h2 class="block-title" style="margin:0; flex:1;">💵 درآمدها</h2>
-        <button class="primary small" id="btnAddIncome">+ درآمد جدید</button>
+      <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:10px;">
+        <div>
+          <h2 class="block-title" style="margin:0;">🏦 دفتر حساب‌های بانکی</h2>
+          <div style="font-size:10.5px;color:var(--ink-soft);margin-top:3px;">شماره حساب، کارت و شبا را یک‌بار ثبت کنید و در تراکنش‌ها انتخاب کنید.</div>
+        </div>
+        <button class="ghost small" id="btnAddBankAccount">+ حساب بانکی</button>
       </div>
-      <div id="incomeList"></div>
+      <div id="bankAccountList"></div>
     </section>
 
     <section class="block">
-      <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:12px;">
+      <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:10px;">
+        <h2 class="block-title" style="margin:0; flex:1;">💵 درآمدها</h2>
+        <button class="primary small" id="btnAddIncome">+ درآمد جدید</button>
+      </div>
+      <div class="finance-toolbar">
+        <div class="finance-toolbar-top">
+          <input type="search" id="incomeSearch" placeholder="جستجو در عنوان، شخص، پرداخت، پیگیری، حساب...">
+          <label style="font-size:11px;color:var(--ink-soft);">تعداد:</label>
+          <select id="incomePageSize"><option>25</option><option>50</option><option>100</option></select>
+          <button class="ghost small" id="incomeClearFilters">پاک‌کردن فیلترها</button>
+        </div>
+        <details class="finance-filter-details">
+          <summary>فیلترهای بیشتر</summary>
+          <div class="finance-filter-grid">
+            <div class="field"><label>شخص</label><input type="text" id="incomeFilterPerson" placeholder="نام شخص"></div>
+            <div class="field"><label>روش پرداخت</label><select id="incomeFilterMethod"><option value="">همه روش‌ها</option></select></div>
+            <div class="field"><label>حساب مرتبط</label><select id="incomeFilterAccount"><option value="">همه حساب‌ها</option></select></div>
+            <div class="field"><label>از تاریخ</label><input type="text" id="incomeDateFrom" placeholder="۱۴۰۵/۰۱/۰۱"></div>
+            <div class="field"><label>تا تاریخ</label><input type="text" id="incomeDateTo" placeholder="۱۴۰۵/۱۲/۲۹"></div>
+            <div class="field"><label>مبلغ از</label><input type="text" inputmode="numeric" id="incomeAmountMin" placeholder="0"></div>
+            <div class="field"><label>مبلغ تا</label><input type="text" inputmode="numeric" id="incomeAmountMax" placeholder="بدون سقف"></div>
+          </div>
+        </details>
+        <div class="finance-summaryline"><span id="incomeResultSummary"></span><span id="incomeFilterHint"></span></div>
+      </div>
+      <div id="incomeList"></div>
+      <div class="finance-pager">
+        <button class="ghost small" id="incomePrev">قبلی</button>
+        <span class="page-info" id="incomePageInfo"></span>
+        <button class="ghost small" id="incomeNext">بعدی</button>
+      </div>
+    </section>
+
+    <section class="block">
+      <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:10px;">
         <h2 class="block-title" style="margin:0; flex:1;">🧾 هزینه‌ها / خریدها</h2>
         <button class="primary small" id="btnAddExpense">+ هزینه جدید</button>
       </div>
+      <div class="finance-toolbar">
+        <div class="finance-toolbar-top">
+          <input type="search" id="expenseSearch" placeholder="جستجو در عنوان، شخص، پرداخت، پیگیری، حساب...">
+          <label style="font-size:11px;color:var(--ink-soft);">تعداد:</label>
+          <select id="expensePageSize"><option>25</option><option>50</option><option>100</option></select>
+          <button class="ghost small" id="expenseClearFilters">پاک‌کردن فیلترها</button>
+        </div>
+        <details class="finance-filter-details">
+          <summary>فیلترهای بیشتر</summary>
+          <div class="finance-filter-grid">
+            <div class="field"><label>شخص</label><input type="text" id="expenseFilterPerson" placeholder="نام شخص"></div>
+            <div class="field"><label>روش پرداخت</label><select id="expenseFilterMethod"><option value="">همه روش‌ها</option></select></div>
+            <div class="field"><label>حساب مرتبط</label><select id="expenseFilterAccount"><option value="">همه حساب‌ها</option></select></div>
+            <div class="field"><label>از تاریخ</label><input type="text" id="expenseDateFrom" placeholder="۱۴۰۵/۰۱/۰۱"></div>
+            <div class="field"><label>تا تاریخ</label><input type="text" id="expenseDateTo" placeholder="۱۴۰۵/۱۲/۲۹"></div>
+            <div class="field"><label>مبلغ از</label><input type="text" inputmode="numeric" id="expenseAmountMin" placeholder="0"></div>
+            <div class="field"><label>مبلغ تا</label><input type="text" inputmode="numeric" id="expenseAmountMax" placeholder="بدون سقف"></div>
+          </div>
+        </details>
+        <div class="finance-summaryline"><span id="expenseResultSummary"></span><span id="expenseFilterHint"></span></div>
+      </div>
       <div id="expenseList"></div>
+      <div class="finance-pager">
+        <button class="ghost small" id="expensePrev">قبلی</button>
+        <span class="page-info" id="expensePageInfo"></span>
+        <button class="ghost small" id="expenseNext">بعدی</button>
+      </div>
     </section>
   </div>
 
@@ -862,7 +942,7 @@
     </div>
     <div class="field">
       <label>نسخه</label>
-      <div class="mono" id="aboutVersion" style="font-size:13px; font-weight:700;">۳٫۹٫۰</div>
+      <div class="mono" id="aboutVersion" style="font-size:13px; font-weight:700;">۳٫۱۰٫۰</div>
     </div>
     <div class="field">
       <label>آخرین به‌روزرسانی</label>
@@ -874,14 +954,15 @@
         HTML5 / CSS3 / JavaScript خالص (بدون فریم‌ورک)<br>
         رمزنگاری AES-256-GCM با Web Crypto API (برای کارت‌های بانکی)<br>
         سینک با گیت‌هاب (GitHub Contents API) — توکن فقط در همین مرورگر<br>
-        ماژول درآمد و هزینه با دسته‌بندی دلخواه<br>
+        ماژول درآمد و هزینه با دسته‌بندی، حساب بانکی، روش پرداخت و ثبت مشابه<br>دفتر حساب‌های بانکی (شماره حساب / کارت / شبا)<br>
         SheetJS برای خروجی Excel<br>
         Web Share API برای اشتراک‌گذاری بک‌آپ<br>
         Notification API برای یادآوری سررسید و پرداخت‌های معلق<br>
         تقویم شمسی و ساعت گرد با انتخابگر، بدون تایپ دستی<br>
         معماری Offline-First؛ ثبت و گزارش‌های اصلی بدون اینترنت کار می‌کنند<br>
         سینک و بک‌آپ Deferred با GitHub پس از بازگشت اتصال<br>
-        بروزرسانی کنترل‌شده PWA از GitHub Pages / Service Worker<br>
+        بروزرسانی PWA برای موبایل از GitHub Pages / Service Worker<br>
+        بروزرسانی ویندوز با بررسی آنلاین و دانلود فایل HTML جدید<br>
         فونت IRANSansX (تعبیه‌شده، آفلاین)
       </div>
     </div>
@@ -910,7 +991,7 @@
 <!-- Backup scope picker -->
 <div class="overlay" id="scopeOverlay">
   <div class="modal">
-    <h3>چی می‌خواید توی این بک‌آپ باشه؟</h3>
+    <h3>چه بخش‌هایی در بک‌آپ باشد؟</h3>
     <div class="field">
       <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
         <input type="checkbox" id="scopeAll" style="width:auto;">
@@ -930,6 +1011,9 @@
       <label style="display:flex; align-items:center; gap:8px; cursor:pointer; margin-bottom:8px;">
         <input type="checkbox" class="scope-item" value="expenses" style="width:auto;"> هزینه‌ها / خریدها
       </label>
+      <label style="display:flex; align-items:center; gap:8px; cursor:pointer; margin-bottom:8px;">
+        <input type="checkbox" class="scope-item" value="bankAccounts" style="width:auto;"> حساب‌های بانکی (حساب / کارت / شبا)
+      </label>
       <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
         <input type="checkbox" class="scope-item" value="cards" style="width:auto;"> کارت‌های بانکی (رمزنگاری‌شده)
       </label>
@@ -945,51 +1029,80 @@
 <div class="overlay" id="financeOverlay">
   <div class="modal">
     <h3 id="financeModalTitle">درآمد جدید</h3>
+    <div id="finCopyNotice" class="mini-status ok" style="display:none;margin-bottom:8px;">این فرم از یک رکورد قبلی ساخته شده است؛ قبل از ذخیره مقادیر لازم را تغییر دهید.</div>
     <div class="field">
       <label>دسته / عنوان</label>
       <div style="display:flex; align-items:center; gap:8px;">
         <span id="finCatBadge" class="cat-badge" style="background:#999; margin:0;">؟</span>
-        <input type="text" id="finCat" placeholder="مثلاً: حقوق / اجاره‌بها / فروش لپ‌تاپ" style="flex:1;">
+        <input type="text" id="finCat" placeholder="مثلاً: حقوق / اجاره‌بها / خرید روزانه" style="flex:1;">
       </div>
     </div>
     <div class="row2">
-      <div class="field">
-        <label>مبلغ (ریال)</label>
-        <input type="text" id="finAmount" inputmode="numeric" placeholder="0">
-      </div>
-      <div class="field">
-        <label id="finPersonLabel">واریزکننده</label>
-        <input type="text" id="finPerson" placeholder="مثلاً: شرکت / مستأجر">
-      </div>
+      <div class="field"><label>مبلغ (ریال)</label><input type="text" id="finAmount" inputmode="numeric" placeholder="0"></div>
+      <div class="field"><label id="finPersonLabel">واریزکننده</label><input type="text" id="finPerson" placeholder="مثلاً: شرکت / فروشگاه / شخص"></div>
     </div>
     <div class="row2">
-      <div class="field">
-        <label>تاریخ</label>
-        <input type="text" id="finDate" placeholder="۱۴۰۵/۰۵/۲۶">
+      <div class="field"><label>تاریخ</label><input type="text" id="finDate" placeholder="۱۴۰۵/۰۵/۲۶"></div>
+      <div class="field"><label>ساعت (اختیاری)</label><input type="text" id="finTime" placeholder="۱۴:۳۰"></div>
+    </div>
+    <div class="field"><label>یادداشت (اختیاری)</label><input type="text" id="finNote" placeholder="یادداشت..."></div>
+    <details class="advanced-payment" id="finAdvancedDetails">
+      <summary>اطلاعات پرداخت</summary>
+      <div class="row2" style="margin-top:8px;">
+        <div class="field">
+          <label>روش پرداخت</label>
+          <input type="text" id="finMethod" list="finMethodList" placeholder="کارت‌به‌کارت / پل / پایا / ساتنا ...">
+          <datalist id="finMethodList"></datalist>
+        </div>
+        <div class="field">
+          <label>کانال انجام</label>
+          <input type="text" id="finChannel" list="finChannelList" placeholder="موبایل‌بانک / اینترنت‌بانک ...">
+          <datalist id="finChannelList"></datalist>
+        </div>
       </div>
-      <div class="field">
-        <label>ساعت (اختیاری)</label>
-        <input type="text" id="finTime" placeholder="۱۴:۳۰">
+      <div class="row2">
+        <div class="field"><label>حساب مبدأ</label><select id="finSourceAccount"><option value="">— انتخاب نشده —</option></select></div>
+        <div class="field"><label>حساب مقصد</label><select id="finDestinationAccount"><option value="">— انتخاب نشده —</option></select></div>
       </div>
-    </div>
-    <div class="field">
-      <label>روش (اختیاری)</label>
-      <input type="text" id="finMethod" list="finMethodList" placeholder="مثلاً واریز به حساب / نقدی / کارت‌به‌کارت">
-      <datalist id="finMethodList">
-        <option value="واریز به حساب">
-        <option value="کارت‌به‌کارت">
-        <option value="نقدی">
-        <option value="اینترنت‌بانک">
-      </datalist>
-    </div>
-    <div class="field">
-      <label>یادداشت (اختیاری)</label>
-      <input type="text" id="finNote" placeholder="یادداشت...">
-    </div>
+      <div class="account-select-note">حساب‌ها از «دفتر حساب‌های بانکی» انتخاب می‌شوند و شماره حساب/کارت/شبا داخل هر تراکنش تکرار نمی‌شود.</div>
+      <div class="row2" style="margin-top:7px;">
+        <div class="field"><label>شماره پیگیری / تراکنش</label><input type="text" id="finTracking" placeholder="اختیاری"></div>
+        <div class="field"><label>شناسه واریز / مرجع</label><input type="text" id="finReference" placeholder="اختیاری"></div>
+      </div>
+    </details>
     <div class="modal-actions">
       <button class="ghost" id="btnDeleteFinance" style="display:none;">حذف</button>
       <button class="ghost" id="btnCancelFinance">انصراف</button>
       <button class="primary" id="btnSaveFinance">ذخیره</button>
+    </div>
+  </div>
+</div>
+
+<!-- Add/Edit Bank Account Modal -->
+<div class="overlay" id="bankAccountOverlay">
+  <div class="modal">
+    <h3 id="bankAccountModalTitle">حساب بانکی جدید</h3>
+    <div class="row2">
+      <div class="field"><label>عنوان حساب</label><input type="text" id="baTitle" placeholder="مثلاً: ملت حقوق"></div>
+      <div class="field"><label>صاحب حساب</label><input type="text" id="baOwner" placeholder="مثلاً: خودم / علی"></div>
+    </div>
+    <div class="row2">
+      <div class="field"><label>بانک</label><input type="text" id="baBank" placeholder="مثلاً: بانک ملت"></div>
+      <div class="field"><label>نوع حساب</label><select id="baType"><option value="">—</option><option>جاری</option><option>کوتاه‌مدت</option><option>قرض‌الحسنه</option><option>سپرده</option><option>سایر</option></select></div>
+    </div>
+    <div class="field"><label>شماره حساب</label><input type="text" id="baAccountNumber" inputmode="numeric" placeholder="اختیاری"></div>
+    <div class="field"><label>شماره کارت</label><input type="text" id="baCardNumber" inputmode="numeric" maxlength="23" placeholder="اختیاری — ۱۶ رقم"></div>
+    <div class="field"><label>شماره شبا</label><input type="text" id="baIban" maxlength="32" placeholder="IR........................."></div>
+    <div class="row2">
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;"><input type="checkbox" id="baDefault" style="width:auto;"> حساب پیش‌فرض</label>
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;"><input type="checkbox" id="baActive" style="width:auto;" checked> فعال</label>
+    </div>
+    <div class="field"><label>یادداشت</label><input type="text" id="baNote" placeholder="اختیاری"></div>
+    <div class="mini-status" id="baValidationHint">حداقل یکی از شماره حساب، شماره کارت یا شبا را وارد کنید.</div>
+    <div class="modal-actions">
+      <button class="ghost" id="btnDeleteBankAccount" style="display:none;color:var(--seal);border-color:var(--seal);">حذف</button>
+      <button class="ghost" id="btnCancelBankAccount">انصراف</button>
+      <button class="primary" id="btnSaveBankAccount">ذخیره</button>
     </div>
   </div>
 </div>
@@ -1331,13 +1444,25 @@
 (function(){
   "use strict";
   const STORE_KEY = "installments-ledger-v1";
-  const APP_VERSION = "3.9.1";
-  const APP_SCHEMA_VERSION = 1;
+  const APP_VERSION = "3.10.0";
+  const APP_SCHEMA_VERSION = 2;
   const SYNC_META_KEY = "installments-sync-meta-v1";
   const RECOVERY_KEY = "installments-recovery-snapshot-v1";
   const DEVICE_KEY = "installments-device-id-v1";
   const AUTO_SYNC_KEY = "installments-auto-sync-reconnect-v1";
+  const PAYMENT_METHODS = ['کارت‌به‌کارت','انتقال درون‌بانکی','پل','پایا','ساتنا','نقدی','چک','کارتخوان / POS','درگاه پرداخت','برداشت مستقیم / خودکار','کیف پول','سایر'];
+  const PAYMENT_CHANNELS = ['موبایل‌بانک','اینترنت‌بانک','خودپرداز','شعبه','اپلیکیشن پرداخت','کارتخوان','خودکار','سایر'];
   const faDigits = ['۰','۱','۲','۳','۴','۵','۶','۷','۸','۹'];
+
+  function populatePaymentLists(){
+    ['finMethodList','paymentMethodList','spPaymentMethodList','ehPaymentMethodList'].forEach(id=>{
+      const dl=document.getElementById(id); if(dl) dl.innerHTML=PAYMENT_METHODS.map(x=>`<option value="${escapeHtml(x)}"></option>`).join('');
+    });
+    const ch=document.getElementById('finChannelList'); if(ch) ch.innerHTML=PAYMENT_CHANNELS.map(x=>`<option value="${escapeHtml(x)}"></option>`).join('');
+    ['incomeFilterMethod','expenseFilterMethod'].forEach(id=>{
+      const sel=document.getElementById(id); if(sel){ const cur=sel.value; sel.innerHTML='<option value="">همه روش‌ها</option>'+PAYMENT_METHODS.map(x=>`<option value="${escapeHtml(x)}">${escapeHtml(x)}</option>`).join(''); sel.value=cur; }
+    });
+  }
 
   function toFa(n){
     return String(n).replace(/[0-9]/g, d => faDigits[d]);
@@ -1599,11 +1724,11 @@
     const el = document.getElementById(id);
     if (el) makeFaInput(el, ':');
   });
-  ['pdDate','fDueDate','ehDate','spDate','sDueDate','finDate'].forEach(id => {
+  ['pdDate','fDueDate','ehDate','spDate','sDueDate','finDate','incomeDateFrom','incomeDateTo','expenseDateFrom','expenseDateTo'].forEach(id => {
     const el = document.getElementById(id);
     if (el) makeFaInput(el, '/');
   });
-  ['cNumber','cExpiry','cCvv'].forEach(id => {
+  ['cNumber','cExpiry','cCvv','baCardNumber','baAccountNumber'].forEach(id => {
     const el = document.getElementById(id);
     if (el) makeFaInput(el, ' /');
   });
@@ -1612,6 +1737,7 @@
   let state = load();
   if (!Array.isArray(state.income)) state.income = [];
   if (!Array.isArray(state.expenses)) state.expenses = [];
+  if (!Array.isArray(state.bankAccounts)) state.bankAccounts = [];
   const UNDO_KEY = "installments-undo-v1";
   let {undoStack, redoStack} = loadUndoStacks();
   const MAX_UNDO = 20;
@@ -1628,12 +1754,13 @@
   function saveUndoStacks(){
     try{ localStorage.setItem(UNDO_KEY, JSON.stringify({undoStack, redoStack})); }catch(e){}
   }
-  function undoSnapshot(){ return {loans:state.loans, simple:state.simple, income:state.income, expenses:state.expenses}; }
+  function undoSnapshot(){ return {loans:state.loans, simple:state.simple, income:state.income, expenses:state.expenses, bankAccounts:state.bankAccounts}; }
   function restoreUndoSnapshot(x){
     if (Array.isArray(x.loans)) state.loans = x.loans;
     if (Array.isArray(x.simple)) state.simple = x.simple;
     if (Array.isArray(x.income)) state.income = x.income;
     if (Array.isArray(x.expenses)) state.expenses = x.expenses;
+    if (Array.isArray(x.bankAccounts)) state.bankAccounts = x.bankAccounts;
   }
   function pushUndoSnapshot(){
     undoStack.push(JSON.stringify(undoSnapshot()));
@@ -1698,7 +1825,8 @@
         {id: uid(), cat:"بیمه عمر پاسارگاد", person:"فرهاد", amount:0, history:[]}
       ],
       income: [],
-      expenses: []
+      expenses: [],
+      bankAccounts: []
     };
   }
   function save(markDirty = true){
@@ -1706,7 +1834,7 @@
     if (markDirty) markLocalDirty();
     document.getElementById('lastSaved').textContent = 'آخرین ذخیره: ' + todayJalaliStr();
   }
-  function uid(){ return 'id_' + Math.random().toString(36).slice(2,10) + Date.now().toString(36); }
+  function uid(){ try{ if(crypto && crypto.randomUUID) return crypto.randomUUID(); }catch(e){} return 'id_' + Math.random().toString(36).slice(2,10) + Date.now().toString(36); }
 
   let activeTab = 'همه';
   let historyOpen = {};   // per-loan payment-history expand state (session only)
@@ -1738,151 +1866,164 @@
     if (pageView === 'finance') renderFinance();
   }
 
-  // ---- Income / Expense (finance) ----
+  // ---- Income / Expense + bank account registry (v3.10) ----
+  const financeViewState = {
+    income:{page:1,size:25}, expense:{page:1,size:25}
+  };
   function currentJalaliMonthKey(){
     const t = parseJalali(todayJalaliStr());
     return `${t.jy}/${String(t.jm).padStart(2,'0')}`;
   }
   function sumForMonth(arr, monthKey){
     return arr.reduce((sum, t) => {
-      const p = parseJalali(t.date);
-      if (!p) return sum;
-      const key = `${p.jy}/${String(p.jm).padStart(2,'0')}`;
-      return key === monthKey ? sum + Number(t.amount || 0) : sum;
+      const p = parseJalali(t.date); if (!p) return sum;
+      return `${p.jy}/${String(p.jm).padStart(2,'0')}` === monthKey ? sum + Number(t.amount || 0) : sum;
     }, 0);
   }
-  function renderFinance(){
-    const monthKey = currentJalaliMonthKey();
-    const incomeMonth = sumForMonth(state.income, monthKey);
-    const expenseMonth = sumForMonth(state.expenses, monthKey);
-    document.getElementById('statIncomeMonth').textContent = fmtMoney(incomeMonth);
-    document.getElementById('statExpenseMonth').textContent = fmtMoney(expenseMonth);
-    const net = incomeMonth - expenseMonth;
-    const netEl = document.getElementById('statNetMonth');
-    netEl.textContent = (net < 0 ? '-' : '') + fmtMoney(Math.abs(net));
-    netEl.style.color = net < 0 ? 'var(--seal)' : 'var(--green-ok)';
-    renderFinanceList('incomeList', state.income, 'income');
-    renderFinanceList('expenseList', state.expenses, 'expense');
+  function normalizeBankDigits(v){ return faToEn(String(v||'')).replace(/[\s\-]/g,''); }
+  function normalizeCardNumber(v){ return normalizeBankDigits(v).replace(/\D/g,''); }
+  function formatBankCard(v){ const d=normalizeCardNumber(v); return d.replace(/(.{4})/g,'$1 ').trim(); }
+  function maskBankCard(v){ const d=normalizeCardNumber(v); if(!d)return ''; return d.length>=8 ? `${d.slice(0,4)} •••• •••• ${d.slice(-4)}` : '••••'; }
+  function normalizeIban(v){ let x=faToEn(String(v||'')).toUpperCase().replace(/[\s\-]/g,''); if(x && !x.startsWith('IR') && /^\d+$/.test(x)) x='IR'+x; return x; }
+  function maskIban(v){ const x=normalizeIban(v); return x.length>10 ? `${x.slice(0,6)}••••••••${x.slice(-6)}` : x; }
+  function validCardNumber(v){
+    const d=normalizeCardNumber(v); if(d.length!==16 || /^([0-9])\1{15}$/.test(d)) return false;
+    let sum=0; for(let i=0;i<16;i++){ let n=Number(d[i]); if(i%2===0){ n*=2; if(n>9)n-=9; } sum+=n; } return sum%10===0;
   }
-  function renderFinanceList(containerId, arr, kind){
-    const el = document.getElementById(containerId);
-    if (arr.length === 0){
-      el.innerHTML = `<div class="empty">${kind === 'income' ? 'هنوز درآمدی ثبت نشده.' : 'هنوز هزینه‌ای ثبت نشده.'}</div>`;
-      return;
-    }
-    const groups = {};
-    arr.forEach(t => { (groups[t.cat] = groups[t.cat] || []).push(t); });
-    const catNames = Object.keys(groups).sort((a, b) => {
-      const maxA = Math.max(...groups[a].map(t => dateTimeSortKey(t.date, t.time)));
-      const maxB = Math.max(...groups[b].map(t => dateTimeSortKey(t.date, t.time)));
-      return historyCompare(maxA, maxB);
+  function validIranIban(v){
+    const x=normalizeIban(v); if(!/^IR\d{24}$/.test(x)) return false;
+    const rearr=x.slice(4)+x.slice(0,4); let rem=0;
+    const numeric=rearr.replace(/[A-Z]/g,c=>String(c.charCodeAt(0)-55));
+    for(const ch of numeric) rem=(rem*10+Number(ch))%97;
+    return rem===1;
+  }
+  function bankAccountLabel(a){
+    if(!a)return '—'; return [a.title,a.bank,a.owner].filter(Boolean).join(' — ') || (a.accountNumber||a.cardNumber||a.iban||'حساب بانکی');
+  }
+  function bankAccountById(id){ return state.bankAccounts.find(a=>a.id===id)||null; }
+  function bankAccountSearchText(a){ return [a.title,a.owner,a.bank,a.accountNumber,a.cardNumber,a.iban,a.type,a.note].join(' ').toLowerCase(); }
+  function accountRefCount(id){ return [...state.income,...state.expenses].filter(t=>t.sourceAccountId===id||t.destinationAccountId===id).length; }
+  function refreshFinanceAccountSelects(){
+    const accounts=state.bankAccounts.slice().sort((a,b)=>Number(b.isDefault)-Number(a.isDefault) || bankAccountLabel(a).localeCompare(bankAccountLabel(b),'fa'));
+    ['finSourceAccount','finDestinationAccount','incomeFilterAccount','expenseFilterAccount'].forEach(id=>{
+      const sel=document.getElementById(id); if(!sel)return; const cur=sel.value;
+      const first=id.includes('Filter')?'<option value="">همه حساب‌ها</option>':'<option value="">— انتخاب نشده —</option>';
+      sel.innerHTML=first+accounts.map(a=>`<option value="${escapeHtml(a.id)}">${a.active===false?'[غیرفعال] ':''}${escapeHtml(bankAccountLabel(a))}</option>`).join('');
+      if(accounts.some(a=>a.id===cur)) sel.value=cur;
     });
-    let html = '';
-    catNames.forEach(cat => {
-      const items = groups[cat].slice().sort((a, b) => historyCompare(dateTimeSortKey(a.date, a.time), dateTimeSortKey(b.date, b.time)));
-      const total = items.reduce((s, t) => s + Number(t.amount || 0), 0);
-      html += `<div class="fin-group ${kind}">
-        <div class="fg-head">
-          <span class="fg-title">${catIconHtml(items[0])}${escapeHtml(cat)}</span>
-          <span class="fg-total mono">${fmtMoney(total)} ${moneyUnit()}</span>
-        </div>`;
-      items.forEach(t => {
-        html += `<div class="fin-row">
-          <div class="fr-info">
-            <span class="fr-amount mono">${fmtMoney(t.amount)} ${moneyUnit()}</span>
-            <span class="mono">${escapeHtml(t.date || '')}</span>
-            ${t.time ? `<span class="mono">${escapeHtml(t.time)}</span>` : ''}
-            ${t.person ? `<span>${escapeHtml(t.person)}</span>` : ''}
-            ${t.method ? `<span>· ${escapeHtml(t.method)}</span>` : ''}
-            ${t.note ? `<span>· ${escapeHtml(t.note)}</span>` : ''}
-          </div>
-          <div class="fr-btns">
-            <button class="ghost small" data-action="editfin" data-kind="${kind}" data-id="${t.id}">✏️</button>
-            <button class="ghost small" data-action="deletefin" data-kind="${kind}" data-id="${t.id}" style="color:var(--seal); border-color:var(--seal);">🗑️</button>
-          </div>
-        </div>`;
-      });
-      html += '</div>';
-    });
-    el.innerHTML = html;
   }
-
-  const financeOverlay = document.getElementById('financeOverlay');
-  let editingFinanceId = null;
-  let editingFinanceKind = 'income';
-  function openFinanceModal(kind, item){
-    editingFinanceKind = kind;
-    editingFinanceId = item ? item.id : null;
-    const isIncome = kind === 'income';
-    document.getElementById('financeModalTitle').textContent = item
-      ? (isIncome ? 'ویرایش درآمد' : 'ویرایش هزینه')
-      : (isIncome ? 'درآمد جدید' : 'هزینه جدید');
-    document.getElementById('finPersonLabel').textContent = isIncome ? 'واریزکننده' : 'گیرنده / فروشگاه';
-    document.getElementById('finCat').value = item ? item.cat : '';
-    document.getElementById('finAmount').value = item ? toFa(item.amount) : '';
-    document.getElementById('finPerson').value = item ? (item.person || '') : '';
-    document.getElementById('finDate').value = item ? (item.date || '') : todayJalaliStr();
-    document.getElementById('finTime').value = item ? (item.time || '') : '';
-    document.getElementById('finMethod').value = item ? (item.method || '') : '';
-    document.getElementById('finNote').value = item ? (item.note || '') : '';
-    document.getElementById('btnDeleteFinance').style.display = item ? 'inline-block' : 'none';
-    updateCatBadgePreview('finCat', 'finCatBadge');
-    financeOverlay.classList.add('show');
+  function renderBankAccounts(){
+    const el=document.getElementById('bankAccountList'); if(!el)return;
+    if(!state.bankAccounts.length){ el.innerHTML='<div class="empty">هنوز حساب بانکی ثبت نشده است.</div>'; return; }
+    const sorted=state.bankAccounts.slice().sort((a,b)=>Number(b.active!==false)-Number(a.active!==false)||Number(b.isDefault)-Number(a.isDefault)||bankAccountLabel(a).localeCompare(bankAccountLabel(b),'fa'));
+    el.innerHTML='<div class="bank-account-grid">'+sorted.map(a=>`<div class="bank-account-card ${a.active===false?'inactive':''}">
+      <div class="bac-head"><span class="bac-title">${a.isDefault?'★ ':''}${escapeHtml(a.title||a.bank||'حساب بانکی')}</span><span class="bac-meta">${escapeHtml(a.owner||'')}${a.active===false?' · غیرفعال':''}</span></div>
+      ${a.bank?`<div class="bac-line"><span class="bac-key">بانک</span><span>${escapeHtml(a.bank)}</span></div>`:''}
+      ${a.accountNumber?`<div class="bac-line"><span class="bac-key">حساب</span><span class="bac-value">${escapeHtml(a.accountNumber)}</span><button class="ghost small" data-ba-action="copy-account" data-id="${a.id}">کپی</button></div>`:''}
+      ${a.cardNumber?`<div class="bac-line"><span class="bac-key">کارت</span><span class="bac-value">${escapeHtml(maskBankCard(a.cardNumber))}</span><button class="ghost small" data-ba-action="copy-card" data-id="${a.id}">کپی</button></div>`:''}
+      ${a.iban?`<div class="bac-line"><span class="bac-key">شبا</span><span class="bac-value">${escapeHtml(maskIban(a.iban))}</span><button class="ghost small" data-ba-action="copy-iban" data-id="${a.id}">کپی</button></div>`:''}
+      <div class="bac-actions"><button class="ghost small" data-ba-action="edit" data-id="${a.id}">✏️ ویرایش</button><span class="bac-meta">استفاده در ${toFa(accountRefCount(a.id))} تراکنش</span></div>
+    </div>`).join('')+'</div>';
   }
-  function closeFinanceModal(){ financeOverlay.classList.remove('show'); editingFinanceId = null; }
-  document.getElementById('btnAddIncome').onclick = () => openFinanceModal('income', null);
-  document.getElementById('btnAddExpense').onclick = () => openFinanceModal('expense', null);
-  document.getElementById('btnCancelFinance').onclick = closeFinanceModal;
-  document.getElementById('btnSaveFinance').onclick = () => {
-    const cat = document.getElementById('finCat').value.trim();
-    if (!cat){ alert('عنوان را وارد کنید.'); return; }
-    const data = {
-      cat,
-      amount: readNum('finAmount'),
-      person: document.getElementById('finPerson').value.trim(),
-      date: document.getElementById('finDate').value.trim() || todayJalaliStr(),
-      time: document.getElementById('finTime').value.trim(),
-      method: document.getElementById('finMethod').value.trim(),
-      note: document.getElementById('finNote').value.trim()
+  const bankAccountOverlay=document.getElementById('bankAccountOverlay'); let editingBankAccountId=null;
+  function openBankAccountModal(a){
+    editingBankAccountId=a?a.id:null; document.getElementById('bankAccountModalTitle').textContent=a?'ویرایش حساب بانکی':'حساب بانکی جدید';
+    document.getElementById('baTitle').value=a?(a.title||''):''; document.getElementById('baOwner').value=a?(a.owner||''):'';
+    document.getElementById('baBank').value=a?(a.bank||''):''; document.getElementById('baType').value=a?(a.type||''):'';
+    document.getElementById('baAccountNumber').value=a?(a.accountNumber||''):''; document.getElementById('baCardNumber').value=a?formatBankCard(a.cardNumber||''):'';
+    document.getElementById('baIban').value=a?(a.iban||''):''; document.getElementById('baDefault').checked=!!(a&&a.isDefault); document.getElementById('baActive').checked=a?a.active!==false:true;
+    document.getElementById('baNote').value=a?(a.note||''):''; document.getElementById('btnDeleteBankAccount').style.display=a?'inline-block':'none'; bankAccountOverlay.classList.add('show');
+  }
+  function closeBankAccountModal(){ bankAccountOverlay.classList.remove('show'); editingBankAccountId=null; }
+  document.getElementById('btnAddBankAccount').onclick=()=>openBankAccountModal(null); document.getElementById('btnCancelBankAccount').onclick=closeBankAccountModal;
+  document.getElementById('btnSaveBankAccount').onclick=()=>{
+    const accountNumber=normalizeBankDigits(document.getElementById('baAccountNumber').value).replace(/[^0-9]/g,'');
+    const cardNumber=normalizeCardNumber(document.getElementById('baCardNumber').value); const iban=normalizeIban(document.getElementById('baIban').value);
+    if(!accountNumber&&!cardNumber&&!iban){ alert('حداقل یکی از شماره حساب، شماره کارت یا شبا را وارد کنید.'); return; }
+    if(cardNumber && !validCardNumber(cardNumber)){ alert('شماره کارت ۱۶ رقمی معتبر نیست.'); return; }
+    if(iban && !validIranIban(iban)){ alert('شماره شبای ایران معتبر نیست (IR + 24 رقم).'); return; }
+    const dupe=state.bankAccounts.find(a=>a.id!==editingBankAccountId && ((accountNumber&&a.accountNumber===accountNumber)||(cardNumber&&a.cardNumber===cardNumber)||(iban&&a.iban===iban)));
+    if(dupe && !confirm(`این شماره در حساب «${bankAccountLabel(dupe)}» هم ثبت شده است. با این حال ذخیره شود؟`)) return;
+    const now=new Date().toISOString(); const data={
+      title:document.getElementById('baTitle').value.trim(), owner:document.getElementById('baOwner').value.trim(), bank:document.getElementById('baBank').value.trim(), type:document.getElementById('baType').value,
+      accountNumber,cardNumber,iban,isDefault:document.getElementById('baDefault').checked,active:document.getElementById('baActive').checked,note:document.getElementById('baNote').value.trim(),updatedAt:now
     };
-    const arr = editingFinanceKind === 'income' ? state.income : state.expenses;
     pushUndoSnapshot();
-    if (editingFinanceId){
-      const t = arr.find(x => x.id === editingFinanceId);
-      Object.assign(t, data);
-    } else {
-      arr.push(Object.assign({id: uid(), icon: null}, data));
-    }
-    save(); render(); closeFinanceModal();
-    toast(editingFinanceKind === 'income' ? 'درآمد ثبت شد' : 'هزینه ثبت شد');
+    if(data.isDefault) state.bankAccounts.forEach(a=>a.isDefault=false);
+    if(editingBankAccountId){ const a=bankAccountById(editingBankAccountId); if(a)Object.assign(a,data); }
+    else state.bankAccounts.push(Object.assign({id:uid(),createdAt:now},data));
+    save(); render(); closeBankAccountModal(); toast('حساب بانکی ذخیره شد');
   };
-  document.getElementById('btnDeleteFinance').onclick = () => {
-    if (!editingFinanceId) return;
-    if (!confirm('این تراکنش حذف شود؟')) return;
-    const arr = editingFinanceKind === 'income' ? state.income : state.expenses;
-    pushUndoSnapshot();
-    const idx = arr.findIndex(x => x.id === editingFinanceId);
-    if (idx >= 0) arr.splice(idx, 1);
-    save(); render(); closeFinanceModal();
+  document.getElementById('btnDeleteBankAccount').onclick=()=>{
+    const a=bankAccountById(editingBankAccountId); if(!a)return; const refs=accountRefCount(a.id);
+    if(refs){ if(!confirm(`این حساب در ${toFa(refs)} تراکنش استفاده شده است و برای حفظ تاریخچه حذف نمی‌شود. حساب غیرفعال شود؟`)) return; pushUndoSnapshot(); a.active=false; a.isDefault=false; a.updatedAt=new Date().toISOString(); save(); render(); closeBankAccountModal(); toast('حساب غیرفعال شد'); return; }
+    if(!confirm('این حساب بانکی حذف شود؟'))return; pushUndoSnapshot(); state.bankAccounts=state.bankAccounts.filter(x=>x.id!==a.id); save(); render(); closeBankAccountModal();
   };
-  financeOverlay.addEventListener('click', (e) => { if (e.target === financeOverlay) closeFinanceModal(); });
-  ['incomeList', 'expenseList'].forEach(id => {
-    document.getElementById(id).addEventListener('click', (e) => {
-      const btn = e.target.closest('button[data-action]');
-      if (!btn) return;
-      const kind = btn.dataset.kind;
-      const arr = kind === 'income' ? state.income : state.expenses;
-      const item = arr.find(x => x.id === btn.dataset.id);
-      if (!item) return;
-      if (btn.dataset.action === 'editfin') openFinanceModal(kind, item);
-      if (btn.dataset.action === 'deletefin'){
-        if (!confirm('این تراکنش حذف شود؟')) return;
-        pushUndoSnapshot();
-        const idx = arr.indexOf(item);
-        if (idx >= 0) arr.splice(idx, 1);
-        save(); render();
-      }
-    });
+  bankAccountOverlay.addEventListener('click',e=>{if(e.target===bankAccountOverlay)closeBankAccountModal();});
+  document.getElementById('bankAccountList').addEventListener('click',e=>{
+    const b=e.target.closest('button[data-ba-action]'); if(!b)return; const a=bankAccountById(b.dataset.id); if(!a)return;
+    const act=b.dataset.baAction; if(act==='edit')openBankAccountModal(a); if(act==='copy-account')copyText(a.accountNumber,'شماره حساب'); if(act==='copy-card')copyText(a.cardNumber,'شماره کارت'); if(act==='copy-iban')copyText(a.iban,'شماره شبا');
+  });
+
+  function financeAccountText(t){ return [bankAccountById(t.sourceAccountId),bankAccountById(t.destinationAccountId)].filter(Boolean).map(bankAccountSearchText).join(' '); }
+  function financeFilterValues(kind){
+    const g=id=>document.getElementById(kind+id); return {q:(g('Search').value||'').trim().toLowerCase(),person:(g('FilterPerson').value||'').trim().toLowerCase(),method:g('FilterMethod').value||'',account:g('FilterAccount').value||'',from:g('DateFrom').value.trim(),to:g('DateTo').value.trim(),min:readFilterNum(g('AmountMin').value),max:readFilterNum(g('AmountMax').value)};
+  }
+  function readFilterNum(v){ const x=faToEn(String(v||'')).replace(/[^\d.-]/g,''); return x===''?null:Number(x); }
+  function filterFinance(arr,kind){
+    const f=financeFilterValues(kind); const fromKey=f.from?dateTimeSortKey(f.from,'00:00'):-1, toKey=f.to?dateTimeSortKey(f.to,'23:59'):Number.MAX_SAFE_INTEGER;
+    return arr.filter(t=>{
+      const key=dateTimeSortKey(t.date,t.time); if(f.from&&key<fromKey)return false; if(f.to&&key>toKey)return false; const amount=Number(t.amount||0); if(f.min!=null&&amount<f.min)return false; if(f.max!=null&&amount>f.max)return false;
+      if(f.person && !String(t.person||'').toLowerCase().includes(f.person))return false; if(f.method&&t.method!==f.method)return false; if(f.account && t.sourceAccountId!==f.account && t.destinationAccountId!==f.account)return false;
+      if(f.q){ const hay=[t.cat,t.person,t.method,t.channel,t.tracking,t.reference,t.note,financeAccountText(t)].join(' ').toLowerCase(); if(!hay.includes(f.q))return false; }
+      return true;
+    }).sort((a,b)=>historyCompare(dateTimeSortKey(a.date,a.time),dateTimeSortKey(b.date,b.time)));
+  }
+  function renderFinance(){
+    const monthKey=currentJalaliMonthKey(), incomeMonth=sumForMonth(state.income,monthKey), expenseMonth=sumForMonth(state.expenses,monthKey);
+    document.getElementById('statIncomeMonth').textContent=fmtMoney(incomeMonth); document.getElementById('statExpenseMonth').textContent=fmtMoney(expenseMonth);
+    const net=incomeMonth-expenseMonth, netEl=document.getElementById('statNetMonth'); netEl.textContent=(net<0?'-':'')+fmtMoney(Math.abs(net)); netEl.style.color=net<0?'var(--seal)':'var(--green-ok)';
+    populatePaymentLists(); refreshFinanceAccountSelects(); renderBankAccounts(); renderFinanceList('incomeList',state.income,'income'); renderFinanceList('expenseList',state.expenses,'expense');
+  }
+  function renderFinanceList(containerId,arr,kind){
+    const el=document.getElementById(containerId); const filtered=filterFinance(arr,kind), st=financeViewState[kind]; st.size=Number(document.getElementById(kind+'PageSize').value)||25;
+    const pages=Math.max(1,Math.ceil(filtered.length/st.size)); st.page=Math.min(Math.max(1,st.page),pages); const start=(st.page-1)*st.size, pageItems=filtered.slice(start,start+st.size); const total=filtered.reduce((x,t)=>x+Number(t.amount||0),0);
+    document.getElementById(kind+'ResultSummary').textContent=`${toFa(filtered.length)} رکورد — مجموع: ${fmtMoney(total)} ${moneyUnit()}`;
+    document.getElementById(kind+'PageInfo').textContent=`صفحه ${toFa(st.page)} از ${toFa(pages)}${filtered.length?` · ${toFa(start+1)} تا ${toFa(Math.min(start+st.size,filtered.length))}`:''}`;
+    document.getElementById(kind+'Prev').disabled=st.page<=1; document.getElementById(kind+'Next').disabled=st.page>=pages;
+    if(!filtered.length){ el.innerHTML=`<div class="empty">${arr.length?'رکوردی با این فیلتر پیدا نشد.':(kind==='income'?'هنوز درآمدی ثبت نشده.':'هنوز هزینه‌ای ثبت نشده.')}</div>`; return; }
+    const groups={}; pageItems.forEach(t=>{(groups[t.cat]=groups[t.cat]||[]).push(t);}); let html='';
+    Object.keys(groups).forEach(cat=>{ const items=groups[cat], pageTotal=items.reduce((x,t)=>x+Number(t.amount||0),0); html+=`<div class="fin-group ${kind}"><div class="fg-head"><span class="fg-title">${catIconHtml(items[0])}${escapeHtml(cat)}</span><span class="fg-total mono">${fmtMoney(pageTotal)} ${moneyUnit()}</span></div>`;
+      items.forEach(t=>{ const src=bankAccountById(t.sourceAccountId), dst=bankAccountById(t.destinationAccountId); html+=`<div class="fin-row"><div class="fr-info"><span class="fr-amount mono">${fmtMoney(t.amount)} ${moneyUnit()}</span><span class="mono">${escapeHtml(t.date||'')}</span>${t.time?`<span class="mono">${escapeHtml(t.time)}</span>`:''}${t.person?`<span>${escapeHtml(t.person)}</span>`:''}${t.method?`<span>· ${escapeHtml(t.method)}</span>`:''}${t.channel?`<span>· ${escapeHtml(t.channel)}</span>`:''}${src?`<span>· از: ${escapeHtml(bankAccountLabel(src))}</span>`:''}${dst?`<span>· به: ${escapeHtml(bankAccountLabel(dst))}</span>`:''}${t.tracking?`<span>· پیگیری: ${escapeHtml(t.tracking)}</span>`:''}${t.note?`<span>· ${escapeHtml(t.note)}</span>`:''}</div><div class="fr-btns"><button class="ghost small" data-action="copyfin" data-kind="${kind}" data-id="${t.id}">⧉ ثبت مشابه</button><button class="ghost small" data-action="editfin" data-kind="${kind}" data-id="${t.id}">✏️</button><button class="ghost small" data-action="deletefin" data-kind="${kind}" data-id="${t.id}" style="color:var(--seal);border-color:var(--seal);">🗑️</button></div></div>`; }); html+='</div>'; }); el.innerHTML=html;
+  }
+  const financeOverlay=document.getElementById('financeOverlay'); let editingFinanceId=null, editingFinanceKind='income', copiedFromFinanceId=null;
+  function openFinanceModal(kind,item,opts={}){
+    editingFinanceKind=kind; const copying=!!opts.copy; editingFinanceId=copying?null:(item?item.id:null); copiedFromFinanceId=copying&&item?item.id:null; const isIncome=kind==='income';
+    document.getElementById('financeModalTitle').textContent=copying?(isIncome?'ثبت درآمد مشابه':'ثبت هزینه مشابه'):(item?(isIncome?'ویرایش درآمد':'ویرایش هزینه'):(isIncome?'درآمد جدید':'هزینه جدید')); document.getElementById('finCopyNotice').style.display=copying?'block':'none';
+    document.getElementById('finPersonLabel').textContent=isIncome?'واریزکننده':'گیرنده / فروشگاه'; document.getElementById('finCat').value=item?item.cat:''; document.getElementById('finAmount').value=item?toFa(item.amount):''; document.getElementById('finPerson').value=item?(item.person||''):'';
+    document.getElementById('finDate').value=copying?todayJalaliStr():(item?(item.date||''):todayJalaliStr()); document.getElementById('finTime').value=copying?'':(item?(item.time||''):''); document.getElementById('finMethod').value=item?(item.method||''):''; document.getElementById('finChannel').value=item?(item.channel||''):'';
+    refreshFinanceAccountSelects(); document.getElementById('finSourceAccount').value=item?(item.sourceAccountId||''):''; document.getElementById('finDestinationAccount').value=item?(item.destinationAccountId||''):'';
+    document.getElementById('finTracking').value=copying?'':(item?(item.tracking||''):''); document.getElementById('finReference').value=copying?'':(item?(item.reference||''):''); document.getElementById('finNote').value=item?(item.note||''):'';
+    document.getElementById('btnDeleteFinance').style.display=editingFinanceId?'inline-block':'none'; document.getElementById('finAdvancedDetails').open=!!(item&&(item.method||item.channel||item.sourceAccountId||item.destinationAccountId||item.tracking||item.reference)); updateCatBadgePreview('finCat','finCatBadge'); financeOverlay.classList.add('show');
+  }
+  function closeFinanceModal(){ financeOverlay.classList.remove('show'); editingFinanceId=null; copiedFromFinanceId=null; }
+  document.getElementById('btnAddIncome').onclick=()=>openFinanceModal('income',null); document.getElementById('btnAddExpense').onclick=()=>openFinanceModal('expense',null); document.getElementById('btnCancelFinance').onclick=closeFinanceModal;
+  function similarFinanceExists(arr,data,excludeId){ return arr.find(t=>t.id!==excludeId && Number(t.amount||0)===Number(data.amount||0) && String(t.date||'')===String(data.date||'') && String(t.person||'').trim().toLowerCase()===String(data.person||'').trim().toLowerCase()); }
+  document.getElementById('btnSaveFinance').onclick=()=>{
+    const cat=document.getElementById('finCat').value.trim(); if(!cat){alert('عنوان را وارد کنید.');return;} const now=new Date().toISOString();
+    const data={cat,amount:readNum('finAmount'),person:document.getElementById('finPerson').value.trim(),date:document.getElementById('finDate').value.trim()||todayJalaliStr(),time:document.getElementById('finTime').value.trim(),method:document.getElementById('finMethod').value.trim(),channel:document.getElementById('finChannel').value.trim(),sourceAccountId:document.getElementById('finSourceAccount').value||null,destinationAccountId:document.getElementById('finDestinationAccount').value||null,tracking:document.getElementById('finTracking').value.trim(),reference:document.getElementById('finReference').value.trim(),note:document.getElementById('finNote').value.trim(),updatedAt:now};
+    const arr=editingFinanceKind==='income'?state.income:state.expenses; if(!editingFinanceId){ const dup=similarFinanceExists(arr,data,null); if(dup&&!confirm('رکوردی با همین مبلغ، شخص و تاریخ وجود دارد. با این حال ذخیره شود؟'))return; }
+    pushUndoSnapshot(); if(editingFinanceId){const t=arr.find(x=>x.id===editingFinanceId); if(t)Object.assign(t,data,{createdAt:t.createdAt||now});} else arr.push(Object.assign({id:uid(),icon:null,createdAt:now,copiedFromId:copiedFromFinanceId||null},data));
+    save(); financeViewState[editingFinanceKind].page=1; render(); closeFinanceModal(); toast(editingFinanceKind==='income'?'درآمد ثبت شد':'هزینه ثبت شد');
+  };
+  document.getElementById('btnDeleteFinance').onclick=()=>{ if(!editingFinanceId||!confirm('این تراکنش حذف شود؟'))return; const arr=editingFinanceKind==='income'?state.income:state.expenses; pushUndoSnapshot(); const idx=arr.findIndex(x=>x.id===editingFinanceId); if(idx>=0)arr.splice(idx,1); save();render();closeFinanceModal(); };
+  financeOverlay.addEventListener('click',e=>{if(e.target===financeOverlay)closeFinanceModal();});
+  ['incomeList','expenseList'].forEach(id=>document.getElementById(id).addEventListener('click',e=>{ const b=e.target.closest('button[data-action]'); if(!b)return; const kind=b.dataset.kind,arr=kind==='income'?state.income:state.expenses,item=arr.find(x=>x.id===b.dataset.id); if(!item)return; if(b.dataset.action==='editfin')openFinanceModal(kind,item); if(b.dataset.action==='copyfin')openFinanceModal(kind,item,{copy:true}); if(b.dataset.action==='deletefin'){if(!confirm('این تراکنش حذف شود؟'))return;pushUndoSnapshot();arr.splice(arr.indexOf(item),1);save();render();}}));
+  ['income','expense'].forEach(kind=>{
+    const rerender=()=>{financeViewState[kind].page=1;renderFinanceList(kind+'List',kind==='income'?state.income:state.expenses,kind);};
+    ['Search','FilterPerson','DateFrom','DateTo','AmountMin','AmountMax'].forEach(suf=>document.getElementById(kind+suf).addEventListener('input',rerender)); ['FilterMethod','FilterAccount','PageSize'].forEach(suf=>document.getElementById(kind+suf).addEventListener('change',rerender));
+    document.getElementById(kind+'Prev').onclick=()=>{financeViewState[kind].page=Math.max(1,financeViewState[kind].page-1);renderFinanceList(kind+'List',kind==='income'?state.income:state.expenses,kind);}; document.getElementById(kind+'Next').onclick=()=>{financeViewState[kind].page++;renderFinanceList(kind+'List',kind==='income'?state.income:state.expenses,kind);};
+    document.getElementById(kind+'ClearFilters').onclick=()=>{['Search','FilterPerson','DateFrom','DateTo','AmountMin','AmountMax'].forEach(suf=>document.getElementById(kind+suf).value=''); ['FilterMethod','FilterAccount'].forEach(suf=>document.getElementById(kind+suf).value=''); rerender();};
   });
 
   const LASTBACKUP_KEY = "installments-lastbackup-v1";
@@ -3349,10 +3490,10 @@
   }
 
   // ---- Backup scope picker (which parts to include) ----
-  const SCOPE_KEY = "installments-backup-scope-v1";
+  const SCOPE_KEY = "installments-backup-scope-v2";
   function loadScopePref(){
     try{ const raw = JSON.parse(localStorage.getItem(SCOPE_KEY)); if (Array.isArray(raw) && raw.length) return raw; }catch(e){}
-    return ['loans','simple','income','expenses','cards'];
+    return ['loans','simple','income','expenses','bankAccounts','cards'];
   }
   function saveScopePref(scope){ try{ localStorage.setItem(SCOPE_KEY, JSON.stringify(scope)); }catch(e){} }
   function updateScopeAllCheckbox(){
@@ -3394,6 +3535,7 @@
     if (scope.includes('simple')) data.simple = state.simple;
     if (scope.includes('income')) data.income = state.income;
     if (scope.includes('expenses')) data.expenses = state.expenses;
+    if (scope.includes('bankAccounts')) data.bankAccounts = state.bankAccounts;
     if (scope.includes('cards')){
       const blob = loadCardsBlob();
       if (blob) data.cardsBlob = blob;
@@ -3402,7 +3544,7 @@
   }
   function createRecoverySnapshot(reason){
     try{
-      const snapshot = {reason:reason||'manual', createdAt:new Date().toISOString(), appVersion:APP_VERSION, payload:buildBackupPayload(['loans','simple','income','expenses','cards'])};
+      const snapshot = {reason:reason||'manual', createdAt:new Date().toISOString(), appVersion:APP_VERSION, payload:buildBackupPayload(['loans','simple','income','expenses','bankAccounts','cards'])};
       localStorage.setItem(RECOVERY_KEY, JSON.stringify(snapshot));
       updateRecoveryStatusLine();
       return true;
@@ -3484,14 +3626,20 @@
     XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(simpleRows2), 'تعهدات دیگر');
     const incomeRows = state.income.map(t => ({
       'دسته': t.cat, [`مبلغ (${unit})`]: conv(t.amount), 'تاریخ': t.date || '', 'ساعت': t.time || '',
-      'واریزکننده': t.person || '', 'روش': t.method || '', 'یادداشت': t.note || ''
+      'واریزکننده': t.person || '', 'روش': t.method || '', 'کانال': t.channel || '',
+      'حساب مبدأ': bankAccountLabel(bankAccountById(t.sourceAccountId)), 'حساب مقصد': bankAccountLabel(bankAccountById(t.destinationAccountId)),
+      'شماره پیگیری': t.tracking || '', 'شناسه واریز/مرجع': t.reference || '', 'ثبت مشابه از': t.copiedFromId || '', 'یادداشت': t.note || ''
     }));
     XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(incomeRows), 'درآمدها');
     const expenseRows = state.expenses.map(t => ({
       'دسته': t.cat, [`مبلغ (${unit})`]: conv(t.amount), 'تاریخ': t.date || '', 'ساعت': t.time || '',
-      'گیرنده/فروشگاه': t.person || '', 'روش': t.method || '', 'یادداشت': t.note || ''
+      'گیرنده/فروشگاه': t.person || '', 'روش': t.method || '', 'کانال': t.channel || '',
+      'حساب مبدأ': bankAccountLabel(bankAccountById(t.sourceAccountId)), 'حساب مقصد': bankAccountLabel(bankAccountById(t.destinationAccountId)),
+      'شماره پیگیری': t.tracking || '', 'شناسه واریز/مرجع': t.reference || '', 'ثبت مشابه از': t.copiedFromId || '', 'یادداشت': t.note || ''
     }));
     XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(expenseRows), 'هزینه‌ها');
+    const accountRows=state.bankAccounts.map(a=>({'عنوان':a.title||'','صاحب حساب':a.owner||'','بانک':a.bank||'','نوع حساب':a.type||'','شماره حساب':a.accountNumber||'','شماره کارت':a.cardNumber||'','شماره شبا':a.iban||'','پیش‌فرض':a.isDefault?'بله':'خیر','فعال':a.active===false?'خیر':'بله','یادداشت':a.note||''}));
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(accountRows), 'حساب‌های بانکی');
     XLSX.writeFile(wb, backupFileName().replace('.json', '.xlsx'));
     recordBackup();
   };
@@ -3636,7 +3784,7 @@
   // clamp paid <= total, drop non-data icons, and guarantee unique ids.
   function sanitizeImportedState(data){
     if (!data || typeof data !== 'object' || Array.isArray(data)) throw new Error('invalid');
-    const hasAnyKnownField = ['loans','simple','income','expenses'].some(k => k in data);
+    const hasAnyKnownField = ['loans','simple','income','expenses','bankAccounts'].some(k => k in data);
     if (!hasAnyKnownField) throw new Error('invalid');
     const num = (v) => {
       const n = Number(faToEn(String(v == null ? '' : v)).replace(/[^\d.-]/g, ''));
@@ -3715,6 +3863,11 @@
     });
     result.simple = simple;
     }
+    if ('bankAccounts' in data){
+      result.bankAccounts=(Array.isArray(data.bankAccounts)?data.bankAccounts:[]).filter(raw=>raw&&typeof raw==='object'&&!Array.isArray(raw)).map(raw=>({
+        id:idOf(raw),title:String(raw.title||'').trim(),owner:String(raw.owner||'').trim(),bank:String(raw.bank||'').trim(),type:String(raw.type||'').trim(),accountNumber:normalizeBankDigits(raw.accountNumber||'').replace(/[^0-9]/g,''),cardNumber:normalizeCardNumber(raw.cardNumber||''),iban:normalizeIban(raw.iban||''),isDefault:!!raw.isDefault,active:raw.active!==false,note:String(raw.note||'').trim(),createdAt:String(raw.createdAt||'').trim(),updatedAt:String(raw.updatedAt||'').trim()
+      }));
+    }
     const txn = (arr, label) => (Array.isArray(arr) ? arr : []).map((raw, i) => {
       if (!raw || typeof raw !== 'object' || Array.isArray(raw)) throw new Error('invalid');
       const cat = String(raw.cat || '').trim();
@@ -3727,7 +3880,15 @@
         time: String(raw.time || '').trim(),
         person: String(raw.person || '').trim(),
         method: String(raw.method || '').trim(),
+        channel: String(raw.channel || '').trim(),
+        sourceAccountId: raw.sourceAccountId ? String(raw.sourceAccountId) : null,
+        destinationAccountId: raw.destinationAccountId ? String(raw.destinationAccountId) : null,
+        tracking: String(raw.tracking || '').trim(),
+        reference: String(raw.reference || '').trim(),
         note: String(raw.note || '').trim(),
+        copiedFromId: raw.copiedFromId ? String(raw.copiedFromId) : null,
+        createdAt: String(raw.createdAt || '').trim(),
+        updatedAt: String(raw.updatedAt || '').trim(),
         icon: iconOf(raw.icon)
       };
     });
@@ -3740,7 +3901,7 @@
   // present in the payload into state, leaving the rest untouched.
   function applyRemotePayload(data, skipConfirm, fromRemote){
     if (!data || typeof data !== 'object' || Array.isArray(data)){ alert('داده معتبر نیست.'); return null; }
-    const hasStateFields = ['loans','simple','income','expenses'].some(k => k in data);
+    const hasStateFields = ['loans','simple','income','expenses','bankAccounts'].some(k => k in data);
     let clean = {};
     if (hasStateFields){
       try{ clean = sanitizeImportedState(data); }
@@ -3751,7 +3912,7 @@
       }
     }
     const includedParts = Object.keys(clean);
-    const partLabels = {loans:'اقساط', simple:'تعهدات دیگر', income:'درآمدها', expenses:'هزینه‌ها'};
+    const partLabels = {loans:'اقساط', simple:'تعهدات دیگر', income:'درآمدها', expenses:'هزینه‌ها', bankAccounts:'حساب‌های بانکی'};
     const includedNames = includedParts.map(k => `${partLabels[k]} (${toFa(clean[k].length)})`).join('، ');
     const hasCards = data.cardsBlob && data.cardsBlob.salt && data.cardsBlob.iv && data.cardsBlob.data;
     if (includedParts.length === 0 && !hasCards){ alert('این فایل هیچ داده‌ی قابل‌بازیابی‌ای ندارد.'); return null; }
@@ -3779,8 +3940,22 @@
   let swRegistration = null;
   let updateReadyWorker = null;
   let latestVersionInfo = null;
-  const CANONICAL_APP_URL = 'https://farhadzandi.github.io/GhestbanUpdate/';
+  const UPDATE_RAW_BASE = 'https://raw.githubusercontent.com/farhadzandi/GhestbanUpdate/main/';
+  const IS_GITHUB_PAGES = location.hostname === 'farhadzandi.github.io' && location.pathname.toLowerCase().includes('/ghestbanupdate');
+  let fileModeUpdateAvailable = false;
+  function updateSourceUrl(file){
+    const q=`t=${Date.now()}`;
+    return IS_GITHUB_PAGES ? `./${file}?${q}` : `${UPDATE_RAW_BASE}${file}?${q}`;
+  }
   const RELEASE_HISTORY = [
+    {version:'3.10.0',released:'2026-08-26',title:'ثبت سریع و حساب‌های بانکی',changes:['دفتر حساب‌های بانکی با شماره حساب، کارت و شبا.','روش‌های پرداخت پل، پایا، ساتنا، کارت‌به‌کارت و سایر روش‌های رایج.','ثبت مشابه امن با شناسه مستقل و هشدار رکورد تکراری.','صفحه‌بندی ۲۵/۵۰/۱۰۰ رکوردی برای درآمد و هزینه.','جستجو و فیلتر پیشرفته روی تراکنش‌ها.','بکاپ، Restore، Snapshot و GitHub Sync شامل حساب‌های بانکی و تمام فیلدهای جدید.']},
+    {version:'3.9.2',released:'2026-08-24',title:'نسخه ساده ویندوز و بروزرسانی مستقیم',changes:[
+      'ویندوز همچنان با یک فایل HTML مستقل و بدون نصب، Python، Node یا سرویس محلی اجرا می‌شود.',
+      'فایل HTML در حالت آفلاین تمام امکانات اصلی مالی را حفظ می‌کند.',
+      'هنگام اتصال اینترنت، نسخه جدید از کانال عمومی GhestbanUpdate بررسی و تغییرات آن نمایش داده می‌شود.',
+      'در ویندوز، با تأیید کاربر یک بکاپ JSON و سپس فایل HTML نسخه جدید دانلود می‌شود.',
+      'PWA برای موبایل حفظ شده و بروزرسانی آن از GitHub Pages انجام می‌شود.'
+    ]},
     {version:'3.9.1',released:'2026-08-24',title:'مرکز بروزرسانی و تاریخچه نسخه‌ها',changes:[
       'نمایش تغییرات نسخه جدید پیش از نصب بروزرسانی.',
       'افزودن تاریخچه بروزرسانی‌ها داخل تنظیمات برنامه.',
@@ -3928,7 +4103,7 @@
       const result=await putRes.json().catch(()=>({})); const cfg2=loadGithubConfig();
       cfg2.lastSync=todayFullDateLine(); cfg2.lastRemoteSha=result && result.content ? result.content.sha : (sha||cfg2.lastRemoteSha); cfg2.lastSyncDirection='push'; saveGithubConfig(cfg2);
       clearLocalDirty(); updateGithubStatusLine(); recordBackup(); connectivityState='github'; updateConnectivityPill();
-      if(!automatic){ const labels={loans:'اقساط',simple:'تعهدات دیگر',income:'درآمدها',expenses:'هزینه‌ها',cards:'کارت‌های بانکی'}; syncPanelShowResult(true,'بک‌آپ موفق',`<span class="sp-ok">با موفقیت روی GitHub ذخیره شد ✓</span><br>شامل: ${scope.map(k=>labels[k]).join('، ')}<br><span style="color:var(--ink-soft);">${todayFullDateLine()}</span>`); }
+      if(!automatic){ const labels={loans:'اقساط',simple:'تعهدات دیگر',income:'درآمدها',expenses:'هزینه‌ها',bankAccounts:'حساب‌های بانکی',cards:'کارت‌های بانکی'}; syncPanelShowResult(true,'بک‌آپ موفق',`<span class="sp-ok">با موفقیت روی GitHub ذخیره شد ✓</span><br>شامل: ${scope.map(k=>labels[k]).join('، ')}<br><span style="color:var(--ink-soft);">${todayFullDateLine()}</span>`); }
       else toast('تغییرات محلی با موفقیت روی GitHub بک‌آپ شد');
       return true;
     }catch(err){
@@ -3991,7 +4166,7 @@
     renderUpdateHistory();
     if(!navigator.onLine) return;
     try{
-      const url = /^https?:$/.test(location.protocol) ? `./updates.json?t=${Date.now()}` : `${CANONICAL_APP_URL}updates.json?t=${Date.now()}`;
+      const url = updateSourceUrl('updates.json');
       const res=await fetchWithTimeout(url,{cache:'no-store'},6500); if(!res.ok) return;
       const data=await res.json(); const list=Array.isArray(data)?data:(Array.isArray(data.releases)?data.releases:null);
       if(list&&list.length){ localStorage.setItem('qestban-release-history',JSON.stringify(list)); renderUpdateHistory(list); }
@@ -4000,7 +4175,8 @@
     }
   }
   function showPreparedUpdate(worker){
-    updateReadyWorker=worker; document.getElementById('btnApplyUpdate').style.display='inline-flex';
+    updateReadyWorker=worker; fileModeUpdateAvailable=false;
+    const btn=document.getElementById('btnApplyUpdate'); btn.style.display='inline-flex'; btn.textContent='نصب نسخه آماده';
     const v=latestVersionInfo&&latestVersionInfo.version?latestVersionInfo.version:'جدید';
     updateUpdateStatus(`نسخه ${toFa(v)} آماده نصب است. قبل از نصب، Snapshot بازیابی از داده‌ها ساخته می‌شود.`,'ok');
     showAvailableUpdateNotes(latestVersionInfo);
@@ -4009,26 +4185,59 @@
     if(!navigator.onLine){ if(!silent) updateUpdateStatus('آفلاین هستید؛ بررسی بروزرسانی به بعد موکول شد.','warn'); return; }
     try{
       if(!silent) updateUpdateStatus('در حال بررسی نسخه جدید...','');
-      const manifestUrl = /^https?:$/.test(location.protocol) ? `./version.json?t=${Date.now()}` : `${CANONICAL_APP_URL}version.json?t=${Date.now()}`;
-      const res=await fetchWithTimeout(manifestUrl,{cache:'no-store'},6500); if(!res.ok) throw new Error('version.json در دسترس نیست');
+      const res=await fetchWithTimeout(updateSourceUrl('version.json'),{cache:'no-store'},6500); if(!res.ok) throw new Error('version.json در دسترس نیست');
       const info=await res.json(); latestVersionInfo=info;
       if(compareVersions(info.version,APP_VERSION)>0){
         showAvailableUpdateNotes(info);
-        if(/^https?:$/.test(location.protocol)){
-          updateUpdateStatus(`نسخه ${toFa(info.version)} منتشر شده است؛ در حال آماده‌سازی فایل‌های بروزرسانی...`,'ok');
+        const btn=document.getElementById('btnApplyUpdate');
+        if(IS_GITHUB_PAGES){
+          fileModeUpdateAvailable=false;
+          updateUpdateStatus(`نسخه ${toFa(info.version)} منتشر شده است؛ در حال آماده‌سازی بروزرسانی PWA...`,'ok');
           if(swRegistration){ await swRegistration.update(); if(swRegistration.waiting) showPreparedUpdate(swRegistration.waiting); }
+        }else if(location.protocol==='file:'){
+          fileModeUpdateAvailable=true; updateReadyWorker=null;
+          btn.style.display='inline-flex'; btn.textContent='دانلود نسخه جدید';
+          updateUpdateStatus(`نسخه ${toFa(info.version)} موجود است؛ تغییرات را ببینید و فایل جدید را دانلود کنید.`,'ok');
         }else{
-          updateUpdateStatus(`نسخه ${toFa(info.version)} موجود است؛ برای بروزرسانی خودکار، قسط‌بان را به‌صورت PWA از GitHub Pages نصب کنید.`,'warn');
+          fileModeUpdateAvailable=true; updateReadyWorker=null;
+          btn.style.display='inline-flex'; btn.textContent='دانلود نسخه جدید';
+          updateUpdateStatus(`نسخه ${toFa(info.version)} موجود است.`,'ok');
         }
-        if(!silent) syncPanelShowResult(true,'بروزرسانی موجود',`نسخه ${escapeHtml(toFa(info.version))} موجود است.<br>${releaseChangesHtml(info)}<br>${/^https?:$/.test(location.protocol)?'پس از آماده‌شدن Service Worker، دکمه «نصب نسخه آماده» فعال می‌شود.':`نسخه فایل محلی نمی‌تواند خودش را جایگزین کند. نسخه نصب‌شده از <b>GitHub Pages</b> قابلیت بروزرسانی خودکار دارد.`}`);
+        if(!silent) syncPanelShowResult(true,'بروزرسانی موجود',`نسخه ${escapeHtml(toFa(info.version))} موجود است.<br>${releaseChangesHtml(info)}<br>${IS_GITHUB_PAGES?'پس از آماده‌شدن Service Worker، دکمه نصب فعال می‌شود.':'با «دانلود نسخه جدید»، ابتدا بکاپ JSON گرفته می‌شود و سپس فایل HTML جدید دانلود خواهد شد.'}`);
       }else{
+        fileModeUpdateAvailable=false; updateReadyWorker=null;
+        const btn=document.getElementById('btnApplyUpdate'); btn.style.display='none'; btn.textContent='نصب نسخه آماده';
         showAvailableUpdateNotes(null);
         updateUpdateStatus(`نسخه ${toFa(APP_VERSION)} به‌روز است.`,'ok');
       }
     }catch(e){ if(!silent) updateUpdateStatus('بررسی آنلاین فعلاً ممکن نیست؛ برنامه آفلاین بدون مشکل ادامه می‌دهد.','warn'); }
   }
   document.getElementById('btnCheckUpdate').onclick=()=>checkForAppUpdate(false);
-  document.getElementById('btnApplyUpdate').onclick=()=>{
+  document.getElementById('btnApplyUpdate').onclick=async()=>{
+    const btn=document.getElementById('btnApplyUpdate');
+    if(fileModeUpdateAvailable){
+      const target=(latestVersionInfo&&latestVersionInfo.version)||'نسخه جدید';
+      if(!confirm(`نسخه ${toFa(target)} دانلود شود؟
+برای ایمنی ابتدا یک بکاپ JSON از اطلاعات فعلی دانلود می‌شود و سپس فایل HTML جدید دریافت خواهد شد.`)) return;
+      btn.disabled=true; updateUpdateStatus('در حال تهیه بکاپ و دانلود نسخه جدید...','');
+      try{
+        downloadBackup();
+        const res=await fetchWithTimeout(updateSourceUrl('index.html'),{cache:'no-store'},20000);
+        if(!res.ok) throw new Error('فایل نسخه جدید در دسترس نیست');
+        const html=await res.text();
+        if(!html || !html.includes('<title>قسط‌بان</title>')) throw new Error('فایل دریافت‌شده معتبر نیست');
+        const blob=new Blob([html],{type:'text/html;charset=utf-8'});
+        const url=URL.createObjectURL(blob); const a=document.createElement('a');
+        const currentName=location.protocol==='file:'?decodeURIComponent((location.pathname.split('/').pop()||'Ghestban.html')):'Ghestban.html';
+        a.href=url; a.download=currentName; document.body.appendChild(a); a.click(); a.remove();
+        setTimeout(()=>URL.revokeObjectURL(url),1500);
+        updateUpdateStatus(`نسخه ${toFa(target)} دانلود شد. فایل جدید را جایگزین فایل قبلی کنید و سپس آن را باز کنید.`,'ok');
+        toast('فایل نسخه جدید دانلود شد');
+      }catch(err){
+        updateUpdateStatus(`دانلود بروزرسانی انجام نشد: ${(err&&err.message)||'خطای نامشخص'}`,'warn');
+      }finally{ btn.disabled=false; }
+      return;
+    }
     if(!updateReadyWorker){ toast('نسخه جدید هنوز کامل آماده نشده است'); return; }
     createRecoverySnapshot(`قبل از بروزرسانی از ${APP_VERSION} به ${(latestVersionInfo&&latestVersionInfo.version)||'نسخه جدید'}`);
     sessionStorage.setItem('qestban-update-reload','1'); updateReadyWorker.postMessage({type:'SKIP_WAITING'}); updateUpdateStatus('در حال فعال‌سازی نسخه جدید...','ok');
@@ -4047,6 +4256,7 @@
     }
     refreshConnectivity(true); setTimeout(()=>checkForAppUpdate(true),1800);
   }
+  populatePaymentLists();
   loadGithubUIFromConfig();
   refreshReleaseHistory();
   document.getElementById('btnImport').onclick = () => document.getElementById('fileImport').click();
@@ -4481,7 +4691,7 @@
     const ok = await confirmDestructive('این عمل همه‌ی اقساط، «تعهدات دیگر»، درآمدها و هزینه‌ها را برای همیشه پاک می‌کند (کارت‌های بانکی دست‌نخورده می‌مانند)', 'پاک کن');
     if (!ok) return;
     pushUndoSnapshot();
-    state = {loans: [], simple: [], income: [], expenses: []};
+    state = {loans: [], simple: [], income: [], expenses: [], bankAccounts: []};
     save();
     render();
     toast('همه‌ی اقساط، تعهدات دیگر، درآمدها و هزینه‌ها پاک شد');
@@ -4734,6 +4944,7 @@
   attachJalaliPicker('ehDate');
   attachJalaliPicker('sDueDate');
   attachJalaliPicker('finDate');
+  attachJalaliPicker('incomeDateFrom'); attachJalaliPicker('incomeDateTo'); attachJalaliPicker('expenseDateFrom'); attachJalaliPicker('expenseDateTo');
 
   // ---- Round time picker (clock face, hour then minute) ----
   let openTimePicker = null;
