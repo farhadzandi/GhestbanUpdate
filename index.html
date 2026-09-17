@@ -563,6 +563,26 @@
   .advanced-payment{border-top:1px dashed var(--paper-line);margin-top:7px;padding-top:7px}.advanced-payment summary{cursor:pointer;font-size:12px;font-weight:800;color:var(--ink-soft)}
   .account-select-note{font-size:10px;color:var(--ink-soft);margin-top:3px}
 
+  .inst-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(155px,1fr));gap:7px;padding:10px;}
+  .inst-grid.compact{grid-template-columns:repeat(auto-fill,minmax(44px,1fr));gap:5px;max-height:360px;overflow:auto;}
+  .inst-cell{padding:8px 3px;min-height:44px;border-color:var(--paper-line);display:flex;align-items:center;justify-content:center;gap:4px;flex-wrap:wrap;}
+  .inst-cell small{width:100%;font-weight:400;}
+  .inst-cell.paid{background:var(--green-ok);color:#fff;}
+  .inst-cell.overdue{border:2px solid var(--seal);color:var(--seal);}
+  .inst-cell.upcoming{border:2px solid var(--pending);}
+  .inst-cell:focus-visible{outline:3px solid var(--brass);outline-offset:2px;}
+  .inst-legend{font-size:11px;padding:8px 10px;color:var(--ink-soft);line-height:1.8;}
+  #installmentDetail{font-family:inherit;color:var(--ink);background:var(--card);border:1px solid var(--paper-line);border-radius:12px;width:min(94vw,520px);max-height:85vh;overflow:auto;}
+  #installmentDetail::backdrop{background:rgba(0,0,0,.5);}
+  #installmentDetail dl>div{display:flex;gap:12px;padding:8px 0;border-bottom:1px solid var(--paper-line);}
+  #installmentDetail dt{min-width:105px;color:var(--ink-soft);}
+  #installmentDetail dd{margin:0;overflow-wrap:anywhere;white-space:pre-wrap;}
+  .detail-actions{display:flex;flex-wrap:wrap;gap:8px;}
+  @media(max-width:600px){
+    .loan{grid-template-columns:minmax(0,1fr);}
+    .loan>.btns{grid-row:2;flex-direction:row;flex-wrap:wrap;justify-content:flex-start;}
+    .inst-grid.compact{grid-template-columns:repeat(auto-fill,minmax(44px,1fr));}
+  }
 </style>
 <script async src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 </head>
@@ -1554,8 +1574,8 @@
 (function(){
   "use strict";
   const STORE_KEY = "installments-ledger-v1";
-  const APP_VERSION = "3.10.4";
-  const APP_SCHEMA_VERSION = 3;
+  const APP_VERSION = "3.10.5";
+  const APP_SCHEMA_VERSION = 4;
   const SYNC_META_KEY = "installments-sync-meta-v1";
   const RECOVERY_KEY = "installments-recovery-snapshot-v1";
   const DEVICE_KEY = "installments-device-id-v1";
@@ -1649,7 +1669,7 @@
     if (remLabel) remLabel.textContent = `مانده کل (${moneyUnit()})`;
     if (paidLabel) paidLabel.textContent = `پرداخت‌شده کل (${moneyUnit()})`;
     const intLabel = document.getElementById('statInterestLabel');
-    if (intLabel) intLabel.textContent = `سود باقیمانده (${moneyUnit()})`;
+    if (intLabel) intLabel.textContent = 'سود باقیمانده (نیازمند قرارداد)';
   }
 
   // ---- Gregorian -> Jalali (Persian) date conversion ----
@@ -1835,7 +1855,7 @@
       if (el.value !== fa) el.value = fa;
     });
   }
-  ['fAmount','fTotal','fPaid','fCycle','fRate','sAmount','finAmount'].forEach(id => {
+  ['fAmount','fTotal','fPaid','fCycle','fRate','sAmount','finAmount','pdAmount','ehAmount'].forEach(id => {
     const el = document.getElementById(id);
     if (el) makeFaInput(el, null, true);
   });
@@ -1884,6 +1904,7 @@
     if (Array.isArray(x.income)) state.income = x.income;
     if (Array.isArray(x.expenses)) state.expenses = x.expenses;
     if (Array.isArray(x.bankAccounts)) state.bankAccounts = x.bankAccounts;
+    normalizeLedger(state);
   }
   function pushUndoSnapshot(){
     undoStack.push(JSON.stringify(undoSnapshot()));
@@ -1921,37 +1942,9 @@
       const raw = localStorage.getItem(STORE_KEY);
       if(raw) return JSON.parse(raw);
     }catch(e){}
-    // seed with the data structure from the user's original sheet
-    return {
-      loans: [
-        {id: uid(), cat:"شهر", person:"فرهاد", amount:38710000, total:36, paid:33, lastPay:"۱۴۰۵/۰۴/۲۶", notes:""},
-        {id: uid(), cat:"شهر", person:"حبیبه", amount:94010000, total:36, paid:8, lastPay:"۱۴۰۵/۰۴/۲۶", notes:""},
-        {id: uid(), cat:"مسکن", person:"حبیبه", amount:2518000, total:144, paid:119, lastPay:"۱۴۰۵/۰۴/۲۶", notes:""},
-        {id: uid(), cat:"مسکن", person:"حبیبه", amount:13367000, total:144, paid:119, lastPay:"۱۴۰۵/۰۴/۲۶", notes:""},
-        {id: uid(), cat:"وام بیمه پاسارگاد", person:"فرهاد", amount:10670000, total:12, paid:11, lastPay:"۱۴۰۵/۰۳/۲۷", notes:""},
-        {id: uid(), cat:"وام بیمه پاسارگاد", person:"علی", amount:26160000, total:12, paid:11, lastPay:"۱۴۰۵/۰۳/۲۷", notes:""},
-        {id: uid(), cat:"پست بانک", person:"فرهاد", amount:52668000, total:48, paid:29, lastPay:"۱۴۰۵/۰۴/۲۶", notes:""},
-        {id: uid(), cat:"پست بانک", person:"حبیبه", amount:52668000, total:48, paid:24, lastPay:"۱۴۰۵/۰۴/۲۶", notes:""},
-        {id: uid(), cat:"پست بانک", person:"حبیبه", amount:64102943, total:48, paid:30, lastPay:"۱۴۰۵/۰۴/۲۶", notes:""},
-        {id: uid(), cat:"سامان", person:"حبیبه", amount:28190000, total:60, paid:55, lastPay:"۱۴۰۵/۰۳/۲۸", notes:""},
-        {id: uid(), cat:"صندوق شمشک (قسط ۱)", person:"—", amount:6000000, total:33, paid:25, lastPay:"", notes:"اول اسفند ۱۴۰۲"},
-        {id: uid(), cat:"صندوق شمشک (قسط ۲)", person:"—", amount:13000000, total:31, paid:1, lastPay:"", notes:"اولین قسط فروردین ۱۴۰۵"},
-        {id: uid(), cat:"صندوق شمشک (قسط ۳)", person:"—", amount:13000000, total:31, paid:1, lastPay:"", notes:"اولین قسط اردیبهشت ۱۴۰۵"}
-      ],
-      simple: [
-        {id: uid(), cat:"آپارتمان تهران", person:"فرهاد", amount:8000000, history:[]},
-        {id: uid(), cat:"ساختمان شمشک", person:"حبیبه", amount:25000000, history:[]},
-        {id: uid(), cat:"کلاس ریاضی", person:"علی", amount:120000000, history:[]},
-        {id: uid(), cat:"کلاس روبوتیک", person:"علی", amount:37000000, history:[]},
-        {id: uid(), cat:"کلاس زبان", person:"علی", amount:25200000, history:[]},
-        {id: uid(), cat:"بیمه عمر پاسارگاد", person:"علی", amount:0, history:[]},
-        {id: uid(), cat:"بیمه عمر پاسارگاد", person:"فرهاد", amount:0, history:[]}
-      ],
-      income: [],
-      expenses: [],
-      bankAccounts: []
-    };
+    return {loans:[], simple:[], income:[], expenses:[], bankAccounts:[]};
   }
+
   function save(markDirty = true){
     localStorage.setItem(STORE_KEY, JSON.stringify(state));
     if (markDirty) markLocalDirty();
@@ -1985,7 +1978,8 @@
   }
   function nextLoanPaymentNo(l){
     ensureLoanHistoryPaymentNumbers(l);
-    return (l.history||[]).reduce((m,h)=>Math.max(m,Number(h.paymentNo)||0),0)+1;
+    const next=Math.max(Number(l.paymentCounter)||0, ...(l.history||[]).map(h=>Number(h.paymentNo)||0))+1;
+    l.paymentCounter=next; return next;
   }
   (function migratePaymentHistoryNumbers(){
     let changed=false;
@@ -2296,7 +2290,7 @@
     state.simple.forEach(s => {
       (s.history || []).forEach(h => {
         const p = parseJalali(h.date);
-        if (p) entries.push({jy: p.jy, jm: p.jm, type: 'expense', amount: Number(s.amount || 0), cat: `${s.cat} (تعهد)`});
+        if (p) entries.push({jy: p.jy, jm: p.jm, type: 'expense', amount: Number(h.amount != null ? h.amount : s.amount), cat: `${s.cat} (تعهد)`});
       });
     });
     return entries;
@@ -2428,7 +2422,7 @@
         const p = parseJalali(h.date);
         if (!p) return;
         const key = `${p.jy}/${String(p.jm).padStart(2,'0')}`;
-        if (key in expenseByMonth) expenseByMonth[key] += Number(s.amount || 0);
+        if (key in expenseByMonth) expenseByMonth[key] += Number(h.amount != null ? h.amount : s.amount);
       });
     });
     let html = '';
@@ -2481,7 +2475,7 @@
       const unpaid = Math.max(l.total - l.paid, 0);
       if (unpaid <= 0) return;
       const key = l.person || '—';
-      byPerson[key] = (byPerson[key] || 0) + unpaid * l.amount;
+      byPerson[key] = (byPerson[key] || 0) + loanTotals(l).remaining;
     });
     const entries = Object.entries(byPerson).sort((a,b) => b[1] - a[1]);
     if (entries.length === 0){ el.innerHTML = '<div class="empty">داده‌ای برای نمایش نیست.</div>'; return; }
@@ -2509,6 +2503,13 @@
       monthLabels.push(JALALI_MONTH_NAMES[m - 1]);
     }
     state.loans.forEach(l => {
+      const schedule=getLoanSchedule(l);
+      if(schedule.length){
+        schedule.filter(x=>!x.paid).forEach(x=>{const p=parseJalali(x.dueDate);if(!p)return;
+          const diff=(p.jy-todayP.jy)*12+p.jm-todayP.jm;
+          if(diff>=0 && diff<MONTHS_AHEAD)monthTotals[diff]+=Number(x.amount)||0;
+        }); return;
+      }
       let unpaid = Math.max(l.total - l.paid, 0);
       if (unpaid <= 0 || !l.dueDate) return;
       let cursor = parseJalali(l.dueDate);
@@ -2645,16 +2646,13 @@
   }
 
   function renderStats(){
-    let active = 0, settled = 0, remaining = 0, paidSum = 0, totalInterest = 0;
+    let active = 0, settled = 0, remaining = 0, paidSum = 0;
     state.loans.forEach(l => {
       const unpaid = Math.max(l.total - l.paid, 0);
       if (unpaid === 0 && l.total > 0) settled++; else active++;
-      remaining += unpaid * l.amount;
-      paidSum += l.paid * l.amount;
-      if (l.rate && l.rate > 0){
-        const remainInterest = unpaid * l.amount * (l.rate / 100);
-        totalInterest += remainInterest;
-      }
+      remaining += loanTotals(l).remaining;
+      paidSum += loanTotals(l).paid;
+
     });
     document.getElementById('statActive').textContent = toFa(active);
     document.getElementById('statSettled').textContent = toFa(settled);
@@ -2662,8 +2660,8 @@
     document.getElementById('statPaid').textContent = fmtMoney(paidSum);
     document.getElementById('statRemainingLabel').textContent = `مانده کل (${moneyUnit()})`;
     document.getElementById('statPaidLabel').textContent = `پرداخت‌شده کل (${moneyUnit()})`;
-    document.getElementById('statInterest').textContent = fmtMoney(Math.round(totalInterest));
-    document.getElementById('statInterestLabel').textContent = `سود باقیمانده (${moneyUnit()})`;
+    document.getElementById('statInterest').textContent = '—';
+    document.getElementById('statInterestLabel').textContent = 'سود باقیمانده (نیازمند قرارداد)';
   }
 
   function loanStatus(l){
@@ -2694,7 +2692,7 @@
         return da - db;
       });
     } else if (sortMode === 'remaining'){
-      arr.sort((a, b) => (Math.max(b.total-b.paid,0)*b.amount) - (Math.max(a.total-a.paid,0)*a.amount));
+      arr.sort((a, b) => loanTotals(b).remaining - loanTotals(a).remaining);
     } else if (sortMode === 'alpha'){
       arr.sort((a, b) => String(a.cat).localeCompare(String(b.cat), 'fa'));
     }
@@ -2702,17 +2700,8 @@
   }
 
   function renderInterestHtml(l){
-    if (!l.rate || l.rate <= 0) return '';
-    const remaining = Math.max(l.total - l.paid, 0);
-    const totalInterest = l.amount * l.total * (l.rate / 100);
-    const paidInterest = l.amount * l.paid * (l.rate / 100);
-    const remainInterest = totalInterest - paidInterest;
-    return `<div class="interest-info">
-      💰 نرخ سود سالانه: <b>${toFa(l.rate)}%</b> ·
-      سود کل: <b class="mono">${fmtMoney(Math.round(totalInterest))}</b> ${moneyUnit()} ·
-      سود پرداختی: <b class="mono">${fmtMoney(Math.round(paidInterest))}</b> ${moneyUnit()} ·
-      سود باقیمانده: <b class="mono">${fmtMoney(Math.round(remainInterest))}</b> ${moneyUnit()}
-    </div>`;
+    if(!l.rate || l.rate<=0) return '';
+    return `<div class="interest-info">نرخ سالانه ثبت‌شده: <b>${toFa(l.rate)}٪</b> · محاسبه سود نیازمند اصل وام و روش محاسبه قرارداد است.</div>`;
   }
 
   function buildLoanCardEl(l){
@@ -2785,7 +2774,7 @@
           <div class="row-menu-dropdown">
             <button data-action="edit" data-id="${l.id}">✏️ ویرایش</button>
             <button data-action="duplicate" data-id="${l.id}">📋 کپی این قسط</button>
-            ${l.paid > 0 ? `<button data-action="undopay" data-id="${l.id}">↩️ حذف آخرین پرداخت</button>` : ''}
+            ${(l.history||[]).length > 0 ? `<button data-action="undopay" data-id="${l.id}">↩️ حذف آخرین پرداخت</button>` : ''}
             <button class="danger" data-action="deleteloan" data-id="${l.id}">🗑️ حذف کل ردیف</button>
           </div>` : ''}
         </div>
@@ -3058,14 +3047,56 @@
     }
   }
 
+  // Convert legacy aggregate counts without inventing payment transactions/dates.
+  function migrateLoan(l){
+    if(!Array.isArray(l.history)) l.history=[];
+    const usedIds=new Set();
+    l.history.forEach(h=>{ if(!h.id || usedIds.has(h.id))h.id=uid(); usedIds.add(h.id); normalizePaymentFields(h); });
+    ensureLoanHistoryPaymentNumbers(l);
+    l.paymentCounter=Math.max(Number(l.paymentCounter)||0,...l.history.map(h=>Number(h.paymentNo)||0));
+    if(!Array.isArray(l.schedule) || !l.schedule.length){
+      const total=Number(l.total), paid=Math.min(Math.max(Number(l.paid)||0,0),total);
+      if(!Number.isInteger(total) || total<1 || total>10000) return;
+      const cycle=Math.max(Number(l.cycleMonths)||1,1), nextDue=l.dueDate;
+      l.legacyLastPay=l.legacyLastPay || l.lastPay || '';
+      l.schedule=Array.from({length:total},(_,i)=>normalizedScheduleItem({
+        id:uid(),seq:i+1,amount:l.amount,paid:i<paid,legacyPaid:i<paid,
+        dueDate:i>=paid && nextDue && parseJalali(nextDue) ? addJalaliMonths(nextDue,(i-paid)*cycle) : ''
+      },i+1,l.amount));
+    }
+    const used=new Set();
+    l.schedule.forEach(x=>{if(!x.id || used.has(x.id))x.id=uid();used.add(x.id);});
+    if(l.scheduleVersion!==4){
+      const oldCount=Math.min(Math.max(Number(l.paid)||0,0),l.schedule.length);
+      const detailed=new Set(l.history.map(h=>Number(h.installmentSeq||h.seq)).filter(Number.isFinite));
+      let missing=oldCount-l.schedule.filter(x=>x.paid||detailed.has(Number(x.seq))).length;
+      l.schedule.forEach(x=>{if(missing>0 && !x.paid && !detailed.has(Number(x.seq))){x.paid=true;x.legacyPaid=true;missing--;}});
+      if(l.schedule.some(x=>x.paid&&!x.paidAt)) l.legacyLastPay=l.legacyLastPay||l.lastPay||'';
+      l.scheduleVersion=4;
+    }
+    reconcileLoanScheduleWithHistory(l); syncLoanFromSchedule(l);
+  }
+  function normalizeLedger(data){
+    (data.loans||[]).forEach(migrateLoan);
+    (data.simple||[]).forEach(x=>(x.history||[]).forEach(h=>{
+      if(h.amount==null){h.amount=Number(x.amount)||0;h.amountEstimated=true;}
+    }));
+  }
+  function loanTotals(l){
+    const schedule=getLoanSchedule(l);
+    if(!schedule.length) return {remaining:Math.max(l.total-l.paid,0)*l.amount,paid:l.paid*l.amount};
+    return schedule.reduce((sum,x)=>{sum[x.paid?'paid':'remaining']+=Number(x.amount)||0;return sum;},{remaining:0,paid:0});
+  }
+
   function normalizedScheduleItem(raw, fallbackSeq, fallbackAmount){
     raw = raw && typeof raw === 'object' ? raw : {};
     return {
       id: raw.id || uid(),
       seq: Math.max(Number(raw.seq) || fallbackSeq || 1, 1),
       dueDate: String(raw.dueDate || '').trim(),
-      amount: Math.max(Number(raw.amount) || Number(fallbackAmount) || 0, 0),
+      amount: Math.max(raw.amount != null ? Number(raw.amount) || 0 : Number(fallbackAmount) || 0, 0),
       paymentId: String(raw.paymentId || raw.paymentIdentifier || '').trim(),
+      legacyPaid: !!raw.legacyPaid,
       paid: !!raw.paid,
       paidAt: String(raw.paidAt || '').trim(),
       paidTime: String(raw.paidTime || '').trim(),
@@ -3086,7 +3117,8 @@
     l.total=schedule.length;
     l.paid=schedule.filter(x=>x.paid).length;
     const paidDates=schedule.filter(x=>x.paid&&x.paidAt).map(x=>x.paidAt).sort((a,b)=>dateTimeSortKey(b)-dateTimeSortKey(a));
-    if(paidDates.length) l.lastPay=paidDates[0];
+    const dates=paidDates.concat(l.legacyLastPay && schedule.some(x=>x.paid&&x.legacyPaid) ? [l.legacyLastPay] : []).sort((a,b)=>dateTimeSortKey(b)-dateTimeSortKey(a));
+    l.lastPay=dates[0] || '';
     const next=schedule.find(x=>!x.paid);
     l.dueDate=next ? (next.dueDate||'') : '';
     if(next && next.amount) l.amount=Number(next.amount)||l.amount;
@@ -3106,7 +3138,7 @@
       if(Number(h.installmentSeq)!==Number(item.seq)){h.installmentSeq=item.seq;changed=true;}
       if(!h.paymentIdentifier && item.paymentId){h.paymentIdentifier=item.paymentId;changed=true;}
       if(!item.paid || item.paidAt!==String(h.date||'')){changed=true;}
-      item.paid=true; item.paidAt=String(h.date||''); item.paidTime=String(h.time||''); item.tracking=String(h.tracking||''); item.method=String(h.method||''); item.channel=String(h.channel||''); item.sourceAccountId=h.sourceAccountId||null; item.note=String(h.note||'');
+      item.legacyPaid=false; item.paid=true; item.paidAt=String(h.date||''); item.paidTime=String(h.time||''); item.tracking=String(h.tracking||''); item.method=String(h.method||''); item.channel=String(h.channel||''); item.sourceAccountId=h.sourceAccountId||null; item.note=String(h.note||'');
       if(Number(h.amount)>0) item.amount=Number(h.amount);
       if(h.paymentIdentifier) item.paymentId=h.paymentIdentifier;
     });
@@ -3124,25 +3156,27 @@
     return 'open';
   }
   function renderInstallmentScheduleHtml(l){
-    const schedule=getLoanSchedule(l);
-    if(!schedule.length) return '';
-    const open = schedule.length <= 12 || !!historyOpen['sch_'+l.id];
-    const paid=schedule.filter(x=>x.paid).length;
-    let body='';
-    if(open){
-      body='<div class="installments-list">'+schedule.map(item=>{
-        const st=scheduleItemStatus(item);
-        const statusText=st==='paid' ? `✓ پرداخت‌شده${item.paidAt?' — '+escapeHtml(item.paidAt):''}` : (st==='overdue'?'سررسید گذشته':(st==='upcoming'?'نزدیک سررسید':'در انتظار'));
-        return `<div class="inst-row ${st}">
-          <span class="inst-seq">قسط ${toFa(item.seq)}</span>
-          <span class="mono">${escapeHtml(item.dueDate||'—')}</span>
-          <span class="inst-amount mono">${fmtMoney(item.amount||l.amount)} ${moneyUnit()}</span>
-          <span class="inst-id">${item.paymentId ? `شناسه: <b class="mono">${escapeHtml(item.paymentId)}</b> <button class="ghost small" data-action="copyinstid" data-value="${escapeHtml(item.paymentId)}">کپی</button>` : 'شناسه: —'}</span>
-          <span class="inst-actions">${item.paid ? `<span class="inst-status">${statusText}</span>` : `<span>${statusText}</span><button class="seal-btn small" data-action="payinstallment" data-id="${l.id}" data-instid="${item.id}">پرداخت این قسط</button>`}</span>
-        </div>`;
-      }).join('')+'</div>';
-    }
-    return `<div class="installments-block"><div class="installments-title"><span>برنامه اقساط — ${toFa(paid)} از ${toFa(schedule.length)} پرداخت‌شده</span>${schedule.length>12?`<button class="ghost small" data-action="toggleschedule" data-id="${l.id}">${open?'بستن':'نمایش همه'}</button>`:''}</div>${body}</div>`;
+    const schedule=getLoanSchedule(l); if(!schedule.length)return '';
+    const compact=schedule.length>24, paid=schedule.filter(x=>x.paid).length;
+    const open=compact || schedule.length<=12 || !!historyOpen['sch_'+l.id];
+    const cells= open ? schedule.map(item=>{
+      const st=scheduleItemStatus(item), label={paid:'پرداخت‌شده',overdue:'سررسید گذشته',upcoming:'نزدیک سررسید',open:'در انتظار'}[st];
+      return `<button type="button" class="inst-cell ${st}" data-action="instancedetail" data-id="${escapeHtml(l.id)}" data-instid="${escapeHtml(item.id)}" title="قسط ${toFa(item.seq)} — ${label}" aria-label="قسط ${toFa(item.seq)}، ${label}"><b>${toFa(item.seq)}</b><span>${item.paid?'✓':st==='overdue'?'!':st==='upcoming'?'◷':'—'}</span>${compact?'':`<small>${escapeHtml(item.dueDate||'بدون سررسید')}<br>${fmtMoney(item.amount)} ${moneyUnit()}</small>`}</button>`;
+    }).join('') : '';
+    return `<div class="installments-block"><div class="installments-title"><span>اقساط — ${toFa(paid)} از ${toFa(schedule.length)} پرداخت‌شده</span>${!compact&&schedule.length>12?`<button class="ghost small" data-action="toggleschedule" data-id="${escapeHtml(l.id)}">${open?'بستن':'نمایش همه'}</button>`:''}</div>${open?`<div class="inst-legend">✓ پرداخت‌شده · ! معوق · ◷ نزدیک سررسید · — در انتظار<br>برای جزئیات، روی شماره قسط بزنید.</div><div class="inst-grid ${compact?'compact':''}">${cells}</div>`:''}</div>`;
+  }
+  function openInstallmentDetail(loanId,instId){
+    const l=state.loans.find(x=>x.id===loanId); if(!l)return;
+    const item=getLoanSchedule(l).find(x=>x.id===instId);if(!item)return;
+    let dialog=document.getElementById('installmentDetail');
+    if(!dialog){dialog=document.createElement('dialog');dialog.id='installmentDetail';document.body.appendChild(dialog);}
+    const history=(l.history||[]).map((h,i)=>({h,i})).filter(x=>x.h.installmentId===item.id);
+    const fields=[['سررسید',item.dueDate||'ثبت نشده'],['مبلغ',fmtMoney(item.amount)+' '+moneyUnit()],['شناسه پرداخت',item.paymentId||'ثبت نشده'],['وضعیت',item.paid?'پرداخت‌شده':'پرداخت‌نشده'],['تاریخ پرداخت',item.paidAt||'ثبت نشده'],['روش / کانال',[item.method,item.channel].filter(Boolean).join(' / ')||'ثبت نشده'],['پیگیری',item.tracking||'ثبت نشده'],['حساب مبدأ',bankAccountLabel(bankAccountById(item.sourceAccountId))],['یادداشت',item.note||'—']];
+    dialog.innerHTML=`<h3>قسط ${toFa(item.seq)} — ${escapeHtml(l.cat)}</h3><dl>${fields.map(([k,v])=>`<div><dt>${k}</dt><dd>${escapeHtml(String(v||'—'))}</dd></div>`).join('')}</dl>${item.legacyPaid?'<p>پرداخت قبلی؛ جزئیات تراکنش در داده‌های قدیمی ثبت نشده است.</p>':''}<div class="detail-actions"><button data-close>بستن</button>${!item.paid?'<button class="seal-btn" data-pay>ثبت پرداخت این قسط</button>':''}${history.map(x=>`<button data-edit="${x.i}">ویرایش پرداخت ${toFa(x.h.paymentNo)}</button>`).join('')}</div>`;
+    dialog.querySelector('[data-close]').onclick=()=>dialog.close();
+    const pay=dialog.querySelector('[data-pay]');if(pay)pay.onclick=()=>{dialog.close();openPaymentModal(l.id,item.id);};
+    dialog.querySelectorAll('[data-edit]').forEach(b=>b.onclick=()=>{dialog.close();openEditHistModal('loan',l.id,Number(b.dataset.edit));});
+    dialog.showModal();
   }
 
   let scheduleDraft=[];
@@ -3228,7 +3262,8 @@
     readScheduleEditor();
     const total=Math.max(readNum('fTotal'),0); const paid=Math.min(Math.max(readNum('fPaid'),0),total); const amount=Math.max(readNum('fAmount'),0); const cycle=Math.max(readNum('fCycle'),1);
     const nextDue=document.getElementById('fDueDate').value.trim();
-    if(!total){ alert('ابتدا تعداد کل اقساط را وارد کنید.'); return; }
+    if(!Number.isInteger(total) || total<1 || total>10000){ alert('تعداد اقساط باید عدد صحیح بین ۱ تا ۱۰۰۰۰ باشد.'); return; }
+    if(scheduleDraft.some(x=>x.paid && x.seq>total)){alert('کاهش تعداد، قسط پرداخت‌شده را حذف می‌کند. ابتدا پرداخت مربوط را بررسی کنید.');return;}
     const oldBySeq=new Map(scheduleDraft.map(x=>[x.seq,x]));
     scheduleDraft=[];
     for(let seq=1;seq<=total;seq++){
@@ -3293,11 +3328,12 @@
     if (editingLoanId){
       pushUndoSnapshot();
       const l = state.loans.find(x => x.id === editingLoanId);
-      Object.assign(l, data); reconcileLoanScheduleWithHistory(l); syncLoanFromSchedule(l);
+      Object.assign(l, data); migrateLoan(l);
     } else {
       pushUndoSnapshot();
       state.loans.push(Object.assign({id: uid(), lastPay:"", pendingSince:null}, data));
     }
+    normalizeLedger(state);
     save(); render(); closeLoanModal();
   };
   document.getElementById('btnDeleteLoan').onclick = async () => {
@@ -3310,6 +3346,7 @@
     pushUndoSnapshot();
     detachExpensesForDeletedLoan(l);
     state.loans = state.loans.filter(x => x.id !== editingLoanId);
+    normalizeLedger(state);
     save(); render(); closeLoanModal();
   };
 
@@ -3404,6 +3441,7 @@
     if (!s.history) s.history = [];
     const entry = {
       id: uid(),
+      amount:Number(s.amount)||0,
       date: document.getElementById('spDate').value.trim() || todayJalaliStr(),
       time: document.getElementById('spTime').value.trim(),
       tracking: document.getElementById('spTracking').value.trim(),
@@ -3493,7 +3531,7 @@
     entry.note = document.getElementById('ehNote').value.trim();
     if(type==='loan'){
       const l=state.loans.find(x=>x.id===id);
-      if(entry.installmentId){ const it=getLoanSchedule(l).find(x=>x.id===entry.installmentId); if(it){ it.paidAt=entry.date; it.paidTime=entry.time; it.tracking=entry.tracking; it.method=entry.method; it.channel=entry.channel; it.sourceAccountId=entry.sourceAccountId; it.note=entry.note; it.amount=entry.amount||it.amount; if(entry.paymentIdentifier)it.paymentId=entry.paymentIdentifier; l.schedule=getLoanSchedule(l); syncLoanFromSchedule(l); } }
+      reconcileLoanScheduleWithHistory(l); syncLoanFromSchedule(l);
       syncLinkedExpenseFromPayment(l,entry);
     }
     save(); render(); closeEditHistModal();
@@ -3509,14 +3547,7 @@
       const l = state.loans.find(x => x.id === id);
       hist = l.history;
       pushUndoSnapshot();
-      const removedEntry=hist[entryIdx]; hist.splice(entryIdx, 1); unlinkExpenseFromPayment(removedEntry);
-      if(removedEntry && removedEntry.installmentId && Array.isArray(l.schedule)){
-        const it=l.schedule.find(x=>x.id===removedEntry.installmentId); if(it){ it.paid=false; it.paidAt=''; it.paidTime=''; it.tracking=''; it.method=''; it.channel=''; it.sourceAccountId=null; it.note=''; } syncLoanFromSchedule(l);
-      } else {
-        l.paid = Math.max(l.paid - 1, 0);
-      }
-      const last = hist.length > 0 ? hist.slice().sort((a,b)=>dateTimeSortKey(b.date,b.time)-dateTimeSortKey(a.date,a.time))[0] : null;
-      l.lastPay = last ? last.date : (removedEntry && removedEntry.prevLastPay ? removedEntry.prevLastPay : '');
+      removeLoanPaymentById(l,hist[entryIdx].id);
     } else {
       const s = state.simple.find(x => x.id === id);
       hist = s.history;
@@ -3575,13 +3606,16 @@
   }
 
   function finalizePayment(l, details, installmentId, existingExpenseId){
+    migrateLoan(l);
     const prevLastPay = l.lastPay;
+    const prevDueDate=l.dueDate;
     const schedule=getLoanSchedule(l);
     let target=null;
     if(schedule.length){
-      target=schedule.find(x=>x.id===(installmentId||pendingPaymentInstallmentId)) || schedule.find(x=>!x.paid);
+      const targetId=installmentId||pendingPaymentInstallmentId;
+      target=targetId ? schedule.find(x=>x.id===targetId) : schedule.find(x=>!x.paid);
       if(!target || target.paid) return false;
-      target.paid=true; target.paidAt=details.date||todayJalaliStr(); target.paidTime=details.time||''; target.tracking=details.tracking||''; target.method=details.method||''; target.channel=details.channel||''; target.sourceAccountId=details.sourceAccountId||null; target.note=details.note||'';
+      target.legacyPaid=false; target.paid=true; target.paidAt=details.date||todayJalaliStr(); target.paidTime=details.time||''; target.tracking=details.tracking||''; target.method=details.method||''; target.channel=details.channel||''; target.sourceAccountId=details.sourceAccountId||null; target.note=details.note||'';
       if(Number(details.amount)>0) target.amount=Number(details.amount); if(details.paymentIdentifier!=null) target.paymentId=String(details.paymentIdentifier||'').trim();
       l.schedule=schedule;
       syncLoanFromSchedule(l);
@@ -3609,7 +3643,7 @@
       amount: Number(details.amount)|| (target ? (target.amount||l.amount) : l.amount),
       loanCat: l.cat,
       loanPerson: l.person,
-      prevLastPay
+      prevLastPay, prevDueDate
     });
     const h=l.history[l.history.length-1];
     if(details.paymentIdentifier!=null) h.paymentIdentifier=String(details.paymentIdentifier||'').trim();
@@ -3617,47 +3651,20 @@
     return h;
   }
   function reversePayment(l){
-    if (l.paid <= 0) return;
-    const hist=(l.history||[]).slice().sort((a,b)=>dateTimeSortKey(b.date,b.time)-dateTimeSortKey(a.date,a.time));
-    const removed=hist[0]||null;
-    const schedule=getLoanSchedule(l);
-    if(schedule.length && removed && removed.installmentId){
-      const item=schedule.find(x=>x.id===removed.installmentId);
-      if(item){ item.paid=false; item.paidAt=''; item.paidTime=''; item.tracking=''; item.method=''; item.channel=''; item.sourceAccountId=null; item.note=''; }
-      unlinkExpenseFromPayment(removed);
-      l.schedule=schedule; l.history=(l.history||[]).filter(h=>h.id!==removed.id); syncLoanFromSchedule(l);
-      const mostRecent=(l.history||[]).slice().sort((a,b)=>dateTimeSortKey(b.date,b.time)-dateTimeSortKey(a.date,a.time))[0]; l.lastPay=mostRecent?mostRecent.date:'';
-      return;
-    }
-    l.paid -= 1;
-    if (l.dueDate) l.dueDate = addJalaliMonths(l.dueDate, -(l.cycleMonths || 1));
-    if (l.history && l.history.length){
-      ensureLoanHistoryPaymentNumbers(l);
-      const latest = l.history.slice().sort((a,b)=>{
-        const ka=dateTimeSortKey(a.date,a.time), kb=dateTimeSortKey(b.date,b.time);
-        if(kb!==ka) return kb-ka;
-        return (Number(b.paymentNo)||0)-(Number(a.paymentNo)||0);
-      })[0] || null;
-      if(latest){
-        unlinkExpenseFromPayment(latest);
-        l.history = l.history.filter(h => h.id !== latest.id);
-        const mostRecent = l.history.slice().sort((a, b) => {
-          const ka=dateTimeSortKey(a.date,a.time), kb=dateTimeSortKey(b.date,b.time);
-          if(kb!==ka) return kb-ka;
-          return (Number(b.paymentNo)||0)-(Number(a.paymentNo)||0);
-        })[0];
-        l.lastPay = mostRecent ? mostRecent.date : (latest.prevLastPay != null ? latest.prevLastPay : "");
-      }
-    }
+    const last=(l.history||[]).slice().sort((a,b)=>dateTimeSortKey(b.date,b.time)-dateTimeSortKey(a.date,a.time)||(Number(b.paymentNo)||0)-(Number(a.paymentNo)||0))[0];
+    if(!last){alert('برای پرداخت‌های قدیمیِ بدون جزئیات، رکوردی جهت حذف وجود ندارد.');return false;}
+    return removeLoanPaymentById(l,last.id);
   }
 
   function openPaymentModal(loanId, installmentId){
     const l = state.loans.find(x => x.id === loanId);
     if (!l) return;
+    migrateLoan(l);
     const unpaid = Math.max(l.total - l.paid, 0);
-    if (unpaid <= 0) return;
+    if (unpaid <= 0){toast('این وام تسویه شده است.');return;}
     pendingPaymentLoanId = loanId;
-    const schedule=getLoanSchedule(l); const inst=schedule.find(x=>x.id===installmentId) || (schedule.length?schedule.find(x=>!x.paid):null);
+    const schedule=getLoanSchedule(l); const inst=installmentId ? schedule.find(x=>x.id===installmentId) : schedule.find(x=>!x.paid);
+    if(installmentId && (!inst || inst.paid)){toast('قسط انتخاب‌شده قابل پرداخت نیست.');return;}
     pendingPaymentInstallmentId = inst ? inst.id : null;
     document.getElementById('paymentModalTitle').textContent = 'ثبت پرداخت — ' + l.cat + ' (' + (l.person || '—') + ')' + (inst ? ' — قسط ' + toFa(inst.seq) : '');
     const ctx=document.getElementById('pdInstallmentContext');
@@ -3697,6 +3704,8 @@
       depositedAt: l.pendingSince || null
     };
     if(!details.amount){alert('مبلغ پرداخت را وارد کنید.');return;}
+    const dp=parseJalali(details.date);
+    if(!dp || dp.jm<1 || dp.jm>12 || dp.jd<1 || dp.jd>jalaliMonthLength(dp.jy,dp.jm)){alert('تاریخ پرداخت معتبر نیست.');return;}
     let existingExpenseId=null; const matches=findMatchingExpenseForInstallment(l,details);
     if(matches.length){
       const ex=matches[0]; const yes=confirm(`یک هزینه با همین مبلغ و تاریخ از قبل وجود دارد:
@@ -3722,14 +3731,21 @@ ${fmtMoney(ex.amount)} ${moneyUnit()} — ${ex.date}
 
   function removeLoanPaymentById(l,paymentId){
     if(!l || !paymentId || !Array.isArray(l.history))return false;
+    migrateLoan(l);
     const idx=l.history.findIndex(h=>h.id===paymentId); if(idx<0)return false;
     const removed=l.history[idx]; unlinkExpenseFromPayment(removed); l.history.splice(idx,1);
-    if(removed.installmentId && Array.isArray(l.schedule)){
-      const item=l.schedule.find(x=>x.id===removed.installmentId); if(item){item.paid=false;item.paidAt='';item.paidTime='';item.tracking='';item.method='';item.channel='';item.sourceAccountId=null;item.note='';} syncLoanFromSchedule(l);
-    } else l.paid=Math.max(Number(l.paid||0)-1,0);
-    const recent=(l.history||[]).slice().sort((a,b)=>dateTimeSortKey(b.date,b.time)-dateTimeSortKey(a.date,a.time))[0]; l.lastPay=recent?recent.date:(removed.prevLastPay||'');
+    const item=(l.schedule||[]).find(x=>x.id===removed.installmentId);
+    if(item){
+      item.paid=false;item.legacyPaid=false;item.paidAt='';item.paidTime='';item.tracking='';item.method='';item.channel='';item.sourceAccountId=null;item.note='';
+      reconcileLoanScheduleWithHistory(l);syncLoanFromSchedule(l);
+    } else if(!(l.schedule||[]).length){
+      l.paid=Math.max(Number(l.paid||0)-1,0);
+      l.dueDate=removed.prevDueDate!=null?removed.prevDueDate:(l.dueDate?addJalaliMonths(l.dueDate,-(l.cycleMonths||1)):'');
+      const recent=l.history.slice().sort((a,b)=>dateTimeSortKey(b.date,b.time)-dateTimeSortKey(a.date,a.time))[0];l.lastPay=recent?recent.date:(removed.prevLastPay||'');
+    }
     return true;
   }
+
   function undoLastPayment(){
     if (!lastPaidLoanId) return;
     const l = state.loans.find(x => x.id === lastPaidLoanId);
@@ -3744,7 +3760,7 @@ ${fmtMoney(ex.amount)} ${moneyUnit()} — ${ex.date}
     if (!l || l.paid <= 0) return;
     if (!confirm(`آخرین پرداخت ثبت‌شده برای «${l.cat} — ${l.person}» حذف شود؟\nتعداد پرداخت‌شده از ${toFa(l.paid)} به ${toFa(l.paid - 1)} کاهش می‌یابد.`)) return;
     pushUndoSnapshot();
-    reversePayment(l);
+    if(!reversePayment(l))return;
     save(); render();
     toast('آخرین پرداخت حذف شد');
   }
@@ -3858,7 +3874,7 @@ ${fmtMoney(ex.amount)} ${moneyUnit()} — ${ex.date}
     document.getElementById('rAmount').textContent = fmtMoney(latestHist && latestHist.amount ? latestHist.amount : l.amount) + ' ' + moneyUnit();
     document.getElementById('rSeq').textContent = latestHist && latestHist.seq ? toFa(latestHist.seq) + ' از ' + toFa(l.total) : toFa(l.paid) + ' از ' + toFa(l.total);
     document.getElementById('rRemain').textContent = toFa(unpaid) + ' قسط';
-    document.getElementById('rDate').textContent = l.lastPay;
+    document.getElementById('rDate').textContent = latestHist ? latestHist.date : l.lastPay;
 
     const setRow = (rowId, valId, val) => {
       const row = document.getElementById(rowId);
@@ -3898,6 +3914,7 @@ ${fmtMoney(ex.amount)} ${moneyUnit()} — ${ex.date}
     const btn = e.target.closest('button[data-action], button[data-cardaction]');
     if (!btn) return;
     const id = btn.dataset.id;
+    if (btn.dataset.action === 'instancedetail') openInstallmentDetail(id,btn.dataset.instid);
     if (btn.dataset.action === 'pay') registerPayment(id);
     if (btn.dataset.action === 'payinstallment') openPaymentModal(id, btn.dataset.instid);
     if (btn.dataset.action === 'toggleschedule'){ historyOpen['sch_'+id]=!historyOpen['sch_'+id]; renderLoans(); }
@@ -4094,6 +4111,7 @@ ${fmtMoney(ex.amount)} ${moneyUnit()} — ${ex.date}
         historyRows.push({
           'دسته': l.cat,
           'شخص': l.person,
+          [`مبلغ (${unit})`]: conv(h.amount != null ? h.amount : l.amount),
           'شماره پرداخت': h.paymentNo || '',
           'شماره قسط': h.installmentSeq || h.seq || '',
           'تاریخ': h.date || '',
@@ -4109,6 +4127,9 @@ ${fmtMoney(ex.amount)} ${moneyUnit()} — ${ex.date}
       });
     });
     const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(scheduleRows), 'برنامه اقساط');
+    const simpleHistoryRows=state.simple.flatMap(x=>(x.history||[]).map(h=>({'عنوان':x.cat,'تاریخ':h.date||'',[`مبلغ (${unit})`]:conv(h.amount),'برآورد از داده قدیمی':h.amountEstimated?'بله':'خیر'})));
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(simpleHistoryRows), 'پرداخت تعهدات');
     XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(overviewRows), 'اقساط');
     XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(historyRows), 'تاریخچه پرداخت‌ها');
     const simpleRows2 = state.simple.map(s => ({
@@ -4309,6 +4330,9 @@ ${fmtMoney(ex.amount)} ${moneyUnit()} — ${ex.date}
         person: String(raw.person || '').trim() || '—',
         amount: Math.max(num(raw.amount), 0),
         total,
+        scheduleVersion:num(raw.scheduleVersion),
+        paymentCounter:Math.max(num(raw.paymentCounter),0),
+        legacyLastPay:String(raw.legacyLastPay||''),
         paid: total > 0 ? Math.min(paidRaw, total) : paidRaw,
         lastPay: String(raw.lastPay || '').trim(),
         notes: String(raw.notes || '').trim(),
@@ -4320,12 +4344,12 @@ ${fmtMoney(ex.amount)} ${moneyUnit()} — ${ex.date}
         pendingSince: raw.pendingSince ? String(raw.pendingSince).trim() : null,
         icon: iconOf(raw.icon),
         schedule: Array.isArray(raw.schedule) ? raw.schedule.filter(x=>x&&typeof x==='object'&&!Array.isArray(x)).map((x,j)=>({
-          id: idOf(x), seq: Math.max(num(x.seq)||j+1,1), dueDate:String(x.dueDate||'').trim(), amount:Math.max(num(x.amount||raw.amount),0), paymentId:String(x.paymentId||x.paymentIdentifier||'').trim(), paid:!!x.paid, paidAt:String(x.paidAt||'').trim(), paidTime:String(x.paidTime||'').trim(), tracking:String(x.tracking||'').trim(), method:String(x.method||'').trim(), channel:String(x.channel||'').trim(), sourceAccountId:x.sourceAccountId?String(x.sourceAccountId):null, note:String(x.note||'').trim()
+          id: idOf(x), seq: Math.max(num(x.seq)||j+1,1), dueDate:String(x.dueDate||'').trim(), amount:Math.max(num(x.amount!=null?x.amount:raw.amount),0), paymentId:String(x.paymentId||x.paymentIdentifier||'').trim(), legacyPaid:!!x.legacyPaid, paid:!!x.paid, paidAt:String(x.paidAt||'').trim(), paidTime:String(x.paidTime||'').trim(), tracking:String(x.tracking||'').trim(), method:String(x.method||'').trim(), channel:String(x.channel||'').trim(), sourceAccountId:x.sourceAccountId?String(x.sourceAccountId):null, note:String(x.note||'').trim()
         })) : [],
         history: Array.isArray(raw.history) ? raw.history : []
       };
     });
-    loans.forEach(l=>{ ensureLoanHistoryPaymentNumbers(l); (l.history||[]).forEach(normalizePaymentFields); if(Array.isArray(l.schedule)&&l.schedule.length){ reconcileLoanScheduleWithHistory(l); syncLoanFromSchedule(l); } });
+    loans.forEach(migrateLoan);
     result.loans = loans;
     }
     if ('simple' in data){
@@ -4338,6 +4362,8 @@ ${fmtMoney(ex.amount)} ${moneyUnit()} — ${ex.date}
       if (Array.isArray(raw.history)){
         history = raw.history.filter(h => h && typeof h === 'object').map(h => ({
           id: h.id || uid(),
+          amount:h.amount==null ? Math.max(num(raw.amount),0) : Math.max(num(h.amount),0),
+          amountEstimated:h.amount==null || !!h.amountEstimated,
           date: String(h.date || '').trim(),
           time: String(h.time || '').trim(),
           tracking: String(h.tracking || '').trim(),
@@ -4401,6 +4427,7 @@ ${fmtMoney(ex.amount)} ${moneyUnit()} — ${ex.date}
       const bySource=new Map(result.expenses.filter(x=>x.sourceType==='installment'&&x.sourcePaymentId).map(x=>[x.sourcePaymentId,x]));
       result.loans.forEach(l=>(l.history||[]).forEach(h=>{ const ex=bySource.get(h.id); if(ex){h.expenseId=ex.id; if(!h.expenseLinkMode)h.expenseLinkMode='linked';} }));
     }
+    normalizeLedger(result);
     return result;
   }
 
@@ -4454,6 +4481,7 @@ ${fmtMoney(ex.amount)} ${moneyUnit()} — ${ex.date}
     return IS_GITHUB_PAGES ? `./${file}?${q}` : `${UPDATE_RAW_BASE}${file}?${q}`;
   }
   const RELEASE_HISTORY = [
+    {"version": "3.10.5", "build": 3105, "schemaVersion": 4, "released": "2026-09-17", "title": "اصلاح پرداخت‌های قدیمی و نمای فشرده اقساط", "notes": "حفظ سوابق قدیمی، ماتریس شماره‌دار برای وام‌های طولانی و هماهنگی پرداخت، سررسید و هزینه مرتبط.", "changes": ["تبدیل خودکار اقساط قدیمی با حفظ تعداد پرداخت‌ها؛ بدون ساخت تراکنش و تاریخ پرداخت فرضی.", "نمای فشرده شماره‌دار برای بیش از ۲۴ قسط، همراه جزئیات و ثبت یا ویرایش پرداخت هر قسط.", "حفظ شماره مستقل و افزایشی پرداخت و جلوگیری از ثبت دوباره روی قسط پرداخت‌شده.", "هماهنگی حذف و بازگردانی پرداخت با سررسید، تاریخچه و هزینه مرتبط.", "محاسبه جمع مانده و پرداخت‌شده از مبالغ مستقل اقساط و اصلاح پیش‌بینی ماهانه.", "نگهداری مبلغ هر پرداخت تعهدات؛ مبالغ بازیابی‌شده از داده قدیمی به‌عنوان برآورد مشخص می‌شوند.", "تبدیل یکسان داده‌های قدیمی در شروع برنامه، ورود JSON و دریافت بکاپ GitHub؛ نسخه بازیابی محلی پیش از تبدیل.", "حذف نمایش محاسبه نامعتبر سود؛ نمایش نرخ ثبت‌شده و نیاز به اطلاعات قرارداد.", "خروجی Excel شامل برنامه اقساط، مبلغ تاریخچه و پرداخت تعهدات؛ بهبود چیدمان موبایل.", "شروع نصب جدید با دفتر خالی؛ اطلاعات ذخیره‌شده کاربران حفظ می‌شود."]},
     {version:'3.10.4',released:'2026-09-17',title:'تاریخچه بکاپ و سطل زباله کارت‌ها',changes:[
       'نمایش ۱۵ نسخه اخیر بکاپ GitHub از داخل برنامه و امکان بازیابی فقط کارت‌ها از هر نسخه.',
       'بازیابی کارت‌ها از تاریخچه بدون دست‌زدن به اقساط، درآمدها، هزینه‌ها و حساب‌های بانکی فعلی.',
@@ -5695,6 +5723,11 @@ ${fmtMoney(ex.amount)} ${moneyUnit()} — ${ex.date}
 
   updateUndoRedoButtons();
 
+  const beforeMigration=JSON.stringify(state);
+  normalizeLedger(state);
+  if(JSON.stringify(state)!==beforeMigration){
+    try{if(!localStorage.getItem('installments-before-v4'))localStorage.setItem('installments-before-v4',JSON.stringify({state:JSON.parse(beforeMigration),cardsBlob:loadCardsBlob(),createdAt:new Date().toISOString()}));}catch(e){}
+  }
   runAutoConfirmChecks();
   save(false);
   render();

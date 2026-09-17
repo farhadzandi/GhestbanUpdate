@@ -1,0 +1,55 @@
+const assert=require('node:assert/strict');
+const fs=require('node:fs');
+const path=require('node:path');
+const {chromium}=require('playwright');
+const source=fs.readFileSync(path.join(__dirname,'../index.html'),'utf8');
+new Function(source.match(/<script>\s*([\s\S]*?)<\/script>/)[1]);
+(async()=>{
+ const browser=await chromium.launch({headless:true,...(process.env.CHROMIUM_PATH?{executablePath:process.env.CHROMIUM_PATH,args:['--no-sandbox','--disable-dev-shm-usage']}: {})});
+ const page=await browser.newPage(); const errors=[];page.on('pageerror',e=>errors.push(e.message));page.on('dialog',d=>d.accept());
+ await page.route('https://**',r=>r.abort());
+ await page.goto('file://'+path.join(__dirname,'../index.html'));
+ const fixture={loans:[{id:'legacy',cat:'وام آزمایشی',person:'آزمایش',amount:100,total:144,paid:119,lastPay:'۱۴۰۵/۰۵/۱۰',dueDate:'۱۴۰۵/۰۶/۱۰',history:[]}],simple:[{id:'simple',cat:'تعهد آزمایشی',person:'آزمایش',amount:70,history:[{id:'s1',date:'۱۴۰۵/۰۵/۰۱'}]}],income:[],expenses:[],bankAccounts:[]};
+ await page.evaluate(f=>{localStorage.setItem('installments-welcome-v1','1');localStorage.setItem('installments-ledger-v1',JSON.stringify(f));},fixture);
+ await page.reload();
+ const state=()=>page.evaluate(()=>JSON.parse(localStorage.getItem('installments-ledger-v1')));
+ let st=await state();assert.equal(st.loans[0].paid,119);assert.equal(st.loans[0].schedule.length,144);assert.equal(st.loans[0].history.length,0);assert.equal(st.loans[0].schedule[0].paidAt,'');assert.equal(st.loans[0].schedule[0].dueDate,'');assert.equal(st.simple[0].history[0].amount,70);
+ assert.equal(await page.locator('.inst-grid.compact .inst-cell').count(),144);
+ const first=JSON.stringify(st);await page.reload();assert.equal(JSON.stringify(await state()),first);console.log('PASS legacy migration and idempotence');
+ await page.locator('.inst-cell').nth(119).click();await page.locator('#installmentDetail [data-pay]').click();await page.locator('#pdAmount').fill('۱۵۰');await page.locator('#btnConfirmPaymentDetail').click();
+ st=await state();assert.equal(st.loans[0].paid,120);assert.equal(st.loans[0].history[0].installmentSeq,120);assert.equal(st.loans[0].history[0].paymentNo,1);assert.equal(st.expenses.length,1);assert.equal(st.expenses[0].amount,150);assert.equal(st.loans[0].schedule[119].amount,150);assert.match(await page.locator('#statRemaining').textContent(),/۲[٬,]?۴۰۰/);console.log('PASS real UI payment and mixed amounts');
+ await page.locator('#btnUndoPay').click();st=await state();assert.equal(st.loans[0].paid,119);assert.equal(st.loans[0].dueDate,'۱۴۰۵/۰۶/۱۰');assert.equal(st.expenses.length,0);assert.equal(st.loans[0].lastPay,'۱۴۰۵/۰۵/۱۰');console.log('PASS receipt undo restores due date and linked expense');
+ await page.locator('.inst-cell').nth(125).click();await page.locator('#installmentDetail [data-pay]').click();await page.locator('#btnConfirmPaymentDetail').click();st=await state();assert.equal(st.loans[0].history[0].installmentSeq,126);assert.equal(st.loans[0].history[0].paymentNo,2);assert.equal(st.loans[0].dueDate,'۱۴۰۵/۰۶/۱۰');await page.locator('#btnCloseReceipt').click();
+ await page.locator('.inst-cell').nth(125).click();await page.locator('#installmentDetail [data-edit]').click();await page.locator('#ehAmount').fill('۲۰۰');await page.locator('#ehPaymentIdentifier').fill('TEST-ID');await page.locator('#btnSaveEditHist').click();st=await state();assert.equal(st.loans[0].schedule[125].amount,200);assert.equal(st.expenses[0].amount,200);assert.equal(st.loans[0].schedule[125].paymentId,'TEST-ID');console.log('PASS out-of-order payment, monotonic numbers and history editing');
+ await page.locator('.inst-cell').nth(125).click();await page.locator('#installmentDetail [data-edit]').click();await page.locator('#btnDeleteHistEntry').click();st=await state();assert.equal(st.loans[0].paid,119);assert.equal(st.expenses.length,0);console.log('PASS history deletion');
+ // Expose closure only in test memory, never in shipped HTML.
+ const instrumented=source.replace('  updateUndoRedoButtons();\n\n  const beforeMigration=', '  window.__test={getState:()=>state,setState:x=>state=x,normalizeLedger,migrateLoan,finalizePayment,removeLoanPaymentById,sanitizeImportedState,applyRemotePayload,buildBackupPayload,loanTotals,collectAllFinancialEntries,save,render};\n  updateUndoRedoButtons();\n\n  const beforeMigration=');
+ await page.route('http://ghestban.test/**',r=>r.fulfill({contentType:'text/html',body:instrumented}));await page.goto('http://ghestban.test/');
+ const result=await page.evaluate(f=>{
+ const t=__test;t.setState(structuredClone(f));t.normalizeLedger(t.getState());const l=t.getState().loans[0];const target=l.schedule[119];
+ const details={date:'۱۴۰۵/۰۶/۱۰',amount:123,time:'۱۲:۰۰'};
+ const h=t.finalizePayment(l,details,target.id); const dup=t.finalizePayment(l,details,target.id); const invalid=t.finalizePayment(l,details,'MISSING');
+ const totals=t.loanTotals(l);const backup=t.buildBackupPayload(['loans','simple','income','expenses','bankAccounts']);
+ const restored=t.sanitizeImportedState(JSON.parse(JSON.stringify(backup)));
+ const simple=t.getState().simple[0];simple.amount=900;const oldAmount=t.collectAllFinancialEntries().find(x=>x.cat.includes('(تعهد)')).amount;
+ const before=JSON.stringify(t.getState().loans);t.applyRemotePayload({simple:restored.simple},true,false);const partialPreserved=JSON.stringify(t.getState().loans)===before;
+ t.setState(restored);const rl=restored.loans[0];t.removeLoanPaymentById(rl,h.id);
+ return {dup,invalid,totals,restoredPaid:rl.paid,restoredDue:rl.dueDate,oldAmount,partialPreserved,expenseCount:restored.expenses.length,counter:rl.paymentCounter};
+ },fixture);
+ assert.equal(result.dup,false);assert.equal(result.invalid,false);assert.equal(result.totals.remaining,2400);assert.equal(result.totals.paid,12023);assert.equal(result.restoredPaid,119);assert.equal(result.oldAmount,70);assert.equal(result.partialPreserved,true);assert.equal(result.expenseCount,0);assert.equal(result.counter,1);console.log('PASS duplicate guard, backup round trip, partial restore and immutable simple amounts');
+ const linked=await page.evaluate(f=>{const t=__test;t.setState(structuredClone(f));t.normalizeLedger(t.getState());let l=t.getState().loans[0];t.getState().expenses.push({id:'existing',cat:'TEST',amount:100,date:'۱۴۰۵/۰۶/۱۰'});let h=t.finalizePayment(l,{amount:100,date:'۱۴۰۵/۰۶/۱۰'},l.schedule[119].id,'existing');const count=t.collectAllFinancialEntries().filter(x=>x.type==='expense'&&x.jm===6).length;t.removeLoanPaymentById(l,h.id);return {count,kept:t.getState().expenses.length,linked:!!t.getState().expenses[0].sourcePaymentId};},fixture);
+ assert.deepEqual(linked,{count:1,kept:1,linked:false});console.log('PASS existing expense link without double counting and safe unlink');
+ const compatibility=await page.evaluate(f=>{
+  const t=__test, old=structuredClone(f);old.loans[0].schedule=Array.from({length:144},(_,i)=>({id:'inst'+i,seq:i+1,amount:100,paid:false}));
+  const migrated=t.sanitizeImportedState(old);const paid=migrated.loans[0].paid;const once=JSON.stringify(migrated);t.normalizeLedger(migrated);
+  const stable=once===JSON.stringify(migrated);
+  t.setState({loans:[],simple:[],income:[],expenses:[],bankAccounts:[]});
+  const loan={id:'duplicate-history',cat:'Test',person:'Test',amount:100,total:2,paid:1,history:[{id:'a',seq:1,date:'۱۴۰۵/۰۱/۰۱',amount:100},{id:'b',seq:1,date:'۱۴۰۵/۰۱/۰۲',amount:100}]};t.getState().loans.push(loan);t.migrateLoan(loan);t.removeLoanPaymentById(loan,'b');
+  return {paid,stable,remainingHistory:loan.history.length,stillPaid:loan.schedule[0].paid};
+ },fixture);
+ assert.deepEqual(compatibility,{paid:119,stable:true,remainingHistory:1,stillPaid:true});console.log('PASS legacy schedule count preservation and duplicate installment history');
+ await page.evaluate(f=>{__test.setState(f);__test.normalizeLedger(f);__test.render();document.getElementById('welcomeOverlay').classList.remove('show');},fixture);
+ await page.setViewportSize({width:390,height:844});await page.screenshot({path:process.env.SCREENSHOT_PATH||'/tmp/ghestban-mobile.png',fullPage:true});
+ assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
+ assert.deepEqual(errors,[]);console.log('PASS mobile width and zero browser exceptions');await browser.close();
+})().catch(e=>{console.error(e);process.exit(1)});
