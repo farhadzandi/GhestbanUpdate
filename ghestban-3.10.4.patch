@@ -1,0 +1,10 @@
+--- a/index.html
++++ b/index.html
+@@ -681,6 +681,7 @@
+           <button class="ghost small" id="btnSaveGithubConfig">💾 ذخیره تنظیمات گیت‌هاب</button>
+           <button class="primary small" id="btnGithubPush">⬆️ بک‌آپ / Push</button>
+           <button class="ghost small" id="btnGithubPull">⬇️ دریافت / Pull</button>
++          <button class="ghost small" id="btnGithubHistory">🕘 تاریخچه بکاپ‌ها</button>
+           <button class="ghost small" id="btnCheckConnectivity">📡 بررسی اتصال</button>
+         </div>
+         <div id="syncMetaStatusLine" class="mini-status"></div>
