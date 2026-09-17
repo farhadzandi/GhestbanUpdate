@@ -1,0 +1,54 @@
+name: Publish Ghestban 3.10.2 HTML
+
+on:
+  push:
+    branches: [release/v3.10.2]
+    paths:
+      - 'ghestban-3.10.2-ready'
+
+permissions:
+  contents: write
+
+jobs:
+  publish-html:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout release branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Reassemble compressed patch
+        run: |
+          cat ghestban-3.10.2.patch.gz.b64.part* > /tmp/ghestban-3.10.2.patch.gz.b64
+          base64 -d /tmp/ghestban-3.10.2.patch.gz.b64 > /tmp/ghestban-3.10.2.patch.gz
+          gzip -dc /tmp/ghestban-3.10.2.patch.gz > /tmp/ghestban-3.10.2.patch
+          test "$(wc -c < /tmp/ghestban-3.10.2.patch.gz.b64)" -eq 18276
+
+      - name: Apply verified patch
+        run: |
+          git apply --check /tmp/ghestban-3.10.2.patch
+          git apply /tmp/ghestban-3.10.2.patch
+
+      - name: Verify final release HTML
+        run: |
+          echo '28e22316481ae7bf7e5e7149ecdd586c332e65df57a4a5f2606888955172c92f  index.html' | sha256sum -c -
+          grep -F 'const APP_VERSION = "3.10.2";' index.html
+          grep -F 'const APP_SCHEMA_VERSION = 3;' index.html
+          grep -F 'id="pdChannel"' index.html
+          grep -F "expenseLinkMode='linked'" index.html
+          grep -F 'پرداخت قسط بعدی' index.html
+          grep -F 'پرداخت این قسط' index.html
+
+      - name: Remove temporary transfer files
+        run: |
+          rm ghestban-3.10.2.patch.gz.b64.part* ghestban-3.10.2-ready
+          rm .github/workflows/publish-ghestban-3.10.2.yml
+
+      - name: Commit verified v3.10.2 HTML
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "Release: publish verified Ghestban v3.10.2 HTML"
+          git push origin release/v3.10.2
