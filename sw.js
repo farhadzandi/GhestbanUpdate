@@ -1,5 +1,5 @@
-// Qestban v3.10.0 Service Worker — Offline-First + controlled updates
-const APP_VERSION = '3.10.0';
+// Qestban v3.10.1 Service Worker — Offline-First + controlled updates
+const APP_VERSION = '3.10.1';
 const CACHE_NAME = `qestban-${APP_VERSION}`;
 const APP_SHELL = ['./','./index.html','./manifest.json','./updates.json','./icons/icon-192.svg','./icons/icon-512.svg'];
 const RUNTIME_CACHE = `qestban-runtime-${APP_VERSION}`;
