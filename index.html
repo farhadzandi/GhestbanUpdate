@@ -954,7 +954,7 @@
     <div class="w-sub">ثبت و پیگیری آفلاین اقساط، درآمد و هزینه — همه‌چیز در همین مرورگر ذخیره می‌شود.</div>
     <div class="w-list">
       <div><span>➕</span> <b>قسط جدید:</b> با دکمه‌ی «+ قسط جدید» بالای صفحه، هر وام را با مبلغ و تعداد قسط اضافه کنید.</div>
-      <div><span>💳</span> <b>ثبت پرداخت:</b> روی هر کارت دکمه‌ی «ثبت پرداخت» — با تاریخ، شماره پیگیری و رسید.</div>
+      <div><span>💳</span> <b>ثبت پرداخت:</b> در اقساط ساختاریافته، «پرداخت قسط بعدی» یا «پرداخت این قسط» را بزنید و روش، کانال و حساب مبدأ را ثبت کنید.</div>
       <div><span>💰</span> <b>درآمد و هزینه:</b> تب «درآمد و هزینه» — حقوق، اجاره‌بها، خرید و هر تراکنش دیگر را با دسته‌ی دلخواه ثبت کنید.</div>
       <div><span>📅</span> <b>تقویم و ساعت:</b> تاریخ و ساعت را از تقویم/ساعت گرد انتخاب کنید، نه با تایپ دستی.</div>
       <div><span>🔗</span> <b>سینک با گیت‌هاب:</b> از تنظیمات، ریپو و توکن خودتان را وصل کنید تا از هر دستگاهی به داده‌ها دسترسی داشته باشید.</div>
@@ -1359,16 +1359,21 @@
       <label>شماره پیگیری/تراکنش (اختیاری)</label>
       <input type="text" id="spTracking" placeholder="مثلاً ۱۲۳۴۵۶۷۸">
     </div>
+    <div class="row2">
+      <div class="field">
+        <label>روش پرداخت (اختیاری)</label>
+        <input type="text" id="spMethod" list="spPaymentMethodList" placeholder="کارت‌به‌کارت / پل / پایا / ساتنا / نقدی ...">
+        <datalist id="spPaymentMethodList"></datalist>
+      </div>
+      <div class="field">
+        <label>کانال انجام (اختیاری)</label>
+        <input type="text" id="spChannel" list="spPaymentChannelList" placeholder="اینترنت‌بانک / موبایل‌بانک / خودپرداز ...">
+        <datalist id="spPaymentChannelList"></datalist>
+      </div>
+    </div>
     <div class="field">
-      <label>روش پرداخت (اختیاری)</label>
-      <input type="text" id="spMethod" list="spPaymentMethodList" placeholder="مثلاً کارت‌به‌کارت / اینترنت‌بانک">
-      <datalist id="spPaymentMethodList">
-        <option value="اینترنت‌بانک">
-        <option value="کارت‌به‌کارت">
-        <option value="دستگاه خودپرداز">
-        <option value="حضوری در شعبه">
-        <option value="نقد">
-      </datalist>
+      <label>حساب مبدأ (اختیاری)</label>
+      <select id="spSourceAccount"><option value="">— انتخاب نشده —</option></select>
     </div>
     <div class="field">
       <label>یادداشت (اختیاری)</label>
@@ -1395,21 +1400,35 @@
         <input type="text" id="ehTime" placeholder="۱۴:۳۰">
       </div>
     </div>
+    <div class="row2" id="ehLoanFields">
+      <div class="field">
+        <label>مبلغ پرداخت (ریال)</label>
+        <input type="text" id="ehAmount" inputmode="numeric" placeholder="0">
+      </div>
+      <div class="field">
+        <label>شناسه پرداخت (اختیاری)</label>
+        <input type="text" id="ehPaymentIdentifier" placeholder="شناسه قسط">
+      </div>
+    </div>
     <div class="field">
       <label>شماره پیگیری/تراکنش (اختیاری)</label>
       <input type="text" id="ehTracking" placeholder="مثلاً ۱۲۳۴۵۶۷۸">
     </div>
+    <div class="row2">
+      <div class="field">
+        <label>روش پرداخت (اختیاری)</label>
+        <input type="text" id="ehMethod" list="ehPaymentMethodList" placeholder="کارت‌به‌کارت / پل / پایا / ساتنا / نقدی ...">
+        <datalist id="ehPaymentMethodList"></datalist>
+      </div>
+      <div class="field">
+        <label>کانال انجام (اختیاری)</label>
+        <input type="text" id="ehChannel" list="ehPaymentChannelList" placeholder="اینترنت‌بانک / موبایل‌بانک / خودپرداز ...">
+        <datalist id="ehPaymentChannelList"></datalist>
+      </div>
+    </div>
     <div class="field">
-      <label>روش پرداخت (اختیاری)</label>
-      <input type="text" id="ehMethod" list="ehPaymentMethodList" placeholder="مثلاً کارت‌به‌کارت">
-      <datalist id="ehPaymentMethodList">
-        <option value="اینترنت‌بانک">
-        <option value="کارت‌به‌کارت">
-        <option value="دستگاه خودپرداز">
-        <option value="برداشت خودکار بانک">
-        <option value="حضوری در شعبه">
-        <option value="نقد">
-      </datalist>
+      <label>حساب مبدأ (اختیاری)</label>
+      <select id="ehSourceAccount"><option value="">— انتخاب نشده —</option></select>
     </div>
     <div class="field">
       <label>یادداشت (اختیاری)</label>
@@ -1438,21 +1457,37 @@
         <input type="text" id="pdTime" placeholder="۱۴:۳۰">
       </div>
     </div>
+    <div class="row2">
+      <div class="field">
+        <label>مبلغ پرداخت (ریال)</label>
+        <input type="text" id="pdAmount" inputmode="numeric" placeholder="0">
+      </div>
+      <div class="field">
+        <label>شناسه پرداخت (اختیاری)</label>
+        <input type="text" id="pdPaymentIdentifier" placeholder="شناسه همین قسط">
+      </div>
+    </div>
     <div class="field">
       <label>شماره پیگیری/تراکنش (اختیاری)</label>
       <input type="text" id="pdTracking" placeholder="مثلاً ۱۲۳۴۵۶۷۸">
     </div>
-    <div class="field">
-      <label>روش پرداخت (اختیاری)</label>
-      <input type="text" id="pdMethod" list="paymentMethodList" placeholder="مثلاً کارت‌به‌کارت / اینترنت‌بانک">
-      <datalist id="paymentMethodList">
-        <option value="اینترنت‌بانک">
-        <option value="کارت‌به‌کارت">
-        <option value="دستگاه خودپرداز">
-        <option value="برداشت خودکار بانک">
-        <option value="حضوری در شعبه">
-      </datalist>
+    <div class="row2">
+      <div class="field">
+        <label>روش پرداخت (اختیاری)</label>
+        <input type="text" id="pdMethod" list="paymentMethodList" placeholder="کارت‌به‌کارت / پل / پایا / ساتنا / نقدی ...">
+        <datalist id="paymentMethodList"></datalist>
+      </div>
+      <div class="field">
+        <label>کانال انجام (اختیاری)</label>
+        <input type="text" id="pdChannel" list="paymentChannelList" placeholder="اینترنت‌بانک / موبایل‌بانک / خودپرداز ...">
+        <datalist id="paymentChannelList"></datalist>
+      </div>
     </div>
+    <div class="field">
+      <label>حساب مبدأ (اختیاری)</label>
+      <select id="pdSourceAccount"><option value="">— انتخاب نشده —</option></select>
+    </div>
+    <div class="mini-status" id="pdExpenseHint" style="margin-bottom:8px;">این پرداخت در «هزینه‌ها» هم ثبت می‌شود. اگر هزینه‌ای با همین مبلغ و تاریخ از قبل وجود داشته باشد، برنامه برای اتصال همان رکورد سؤال می‌کند تا دوباره‌شماری نشود.</div>
     <div class="field">
       <label>یادداشت (اختیاری)</label>
       <input type="text" id="pdNote" placeholder="یادداشت...">
@@ -1481,6 +1516,7 @@
       <div id="rTimeRow" style="display:none;"><span>ساعت</span><span class="mono" id="rTime">—</span></div>
       <div id="rTrackingRow" style="display:none;"><span>شماره پیگیری</span><span class="mono" id="rTracking">—</span></div>
       <div id="rMethodRow" style="display:none;"><span>روش پرداخت</span><span id="rMethod">—</span></div>
+      <div id="rChannelRow" style="display:none;"><span>کانال پرداخت</span><span id="rChannel">—</span></div>
       <div id="rNoteRow" style="display:none;"><span>یادداشت</span><span id="rNote">—</span></div>
     </dl>
     <div class="receipt-actions">
@@ -1494,21 +1530,34 @@
 (function(){
   "use strict";
   const STORE_KEY = "installments-ledger-v1";
-  const APP_VERSION = "3.10.1";
-  const APP_SCHEMA_VERSION = 2;
+  const APP_VERSION = "3.10.2";
+  const APP_SCHEMA_VERSION = 3;
   const SYNC_META_KEY = "installments-sync-meta-v1";
   const RECOVERY_KEY = "installments-recovery-snapshot-v1";
   const DEVICE_KEY = "installments-device-id-v1";
   const AUTO_SYNC_KEY = "installments-auto-sync-reconnect-v1";
   const PAYMENT_METHODS = ['کارت‌به‌کارت','انتقال درون‌بانکی','پل','پایا','ساتنا','نقدی','چک','کارتخوان / POS','درگاه پرداخت','برداشت مستقیم / خودکار','کیف پول','سایر'];
   const PAYMENT_CHANNELS = ['موبایل‌بانک','اینترنت‌بانک','خودپرداز','شعبه','اپلیکیشن پرداخت','کارتخوان','خودکار','سایر'];
+  const LEGACY_CHANNEL_METHODS = {
+    'اینترنت‌بانک':'اینترنت‌بانک','موبایل‌بانک':'موبایل‌بانک','دستگاه خودپرداز':'خودپرداز','خودپرداز':'خودپرداز','حضوری در شعبه':'شعبه','شعبه':'شعبه','اپلیکیشن پرداخت':'اپلیکیشن پرداخت'
+  };
+  function normalizePaymentFields(obj){
+    if(!obj || typeof obj!=='object') return false;
+    let changed=false; const m=String(obj.method||'').trim(); const c=String(obj.channel||'').trim();
+    if(!c && LEGACY_CHANNEL_METHODS[m]){ obj.channel=LEGACY_CHANNEL_METHODS[m]; obj.method=''; changed=true; }
+    else if(m==='برداشت خودکار بانک'){ obj.method='برداشت مستقیم / خودکار'; if(!c)obj.channel='خودکار'; changed=true; }
+    else if(m==='نقد'){ obj.method='نقدی'; changed=true; }
+    return changed;
+  }
   const faDigits = ['۰','۱','۲','۳','۴','۵','۶','۷','۸','۹'];
 
   function populatePaymentLists(){
     ['finMethodList','paymentMethodList','spPaymentMethodList','ehPaymentMethodList'].forEach(id=>{
       const dl=document.getElementById(id); if(dl) dl.innerHTML=PAYMENT_METHODS.map(x=>`<option value="${escapeHtml(x)}"></option>`).join('');
     });
-    const ch=document.getElementById('finChannelList'); if(ch) ch.innerHTML=PAYMENT_CHANNELS.map(x=>`<option value="${escapeHtml(x)}"></option>`).join('');
+    ['finChannelList','paymentChannelList','spPaymentChannelList','ehPaymentChannelList'].forEach(id=>{
+      const dl=document.getElementById(id); if(dl) dl.innerHTML=PAYMENT_CHANNELS.map(x=>`<option value="${escapeHtml(x)}"></option>`).join('');
+    });
     ['incomeFilterMethod','expenseFilterMethod'].forEach(id=>{
       const sel=document.getElementById(id); if(sel){ const cur=sel.value; sel.innerHTML='<option value="">همه روش‌ها</option>'+PAYMENT_METHODS.map(x=>`<option value="${escapeHtml(x)}">${escapeHtml(x)}</option>`).join(''); sel.value=cur; }
     });
@@ -1916,7 +1965,10 @@
   }
   (function migratePaymentHistoryNumbers(){
     let changed=false;
-    (state.loans||[]).forEach(l=>{ if(ensureLoanHistoryPaymentNumbers(l)) changed=true; });
+    (state.loans||[]).forEach(l=>{ if(ensureLoanHistoryPaymentNumbers(l)) changed=true; (l.history||[]).forEach(h=>{if(normalizePaymentFields(h))changed=true;}); });
+    (state.simple||[]).forEach(x=>(x.history||[]).forEach(h=>{if(normalizePaymentFields(h))changed=true;}));
+    (state.income||[]).forEach(t=>{if(normalizePaymentFields(t))changed=true;});
+    (state.expenses||[]).forEach(t=>{if(normalizePaymentFields(t))changed=true;});
     if(changed){ try{ localStorage.setItem(STORE_KEY,JSON.stringify(state)); }catch(e){} }
   })();
 
@@ -1986,10 +2038,15 @@
   }
   function bankAccountById(id){ return state.bankAccounts.find(a=>a.id===id)||null; }
   function bankAccountSearchText(a){ return [a.title,a.owner,a.bank,a.accountNumber,a.cardNumber,a.iban,a.type,a.note].join(' ').toLowerCase(); }
-  function accountRefCount(id){ return [...state.income,...state.expenses].filter(t=>t.sourceAccountId===id||t.destinationAccountId===id).length; }
+  function accountRefCount(id){
+    let n=[...state.income,...state.expenses].filter(t=>t.sourceAccountId===id||t.destinationAccountId===id).length;
+    state.loans.forEach(l=>(l.history||[]).forEach(h=>{ if(h.sourceAccountId===id)n++; }));
+    state.simple.forEach(x=>(x.history||[]).forEach(h=>{ if(h.sourceAccountId===id)n++; }));
+    return n;
+  }
   function refreshFinanceAccountSelects(){
     const accounts=state.bankAccounts.slice().sort((a,b)=>Number(b.isDefault)-Number(a.isDefault) || bankAccountLabel(a).localeCompare(bankAccountLabel(b),'fa'));
-    ['finSourceAccount','finDestinationAccount','incomeFilterAccount','expenseFilterAccount'].forEach(id=>{
+    ['finSourceAccount','finDestinationAccount','incomeFilterAccount','expenseFilterAccount','pdSourceAccount','spSourceAccount','ehSourceAccount'].forEach(id=>{
       const sel=document.getElementById(id); if(!sel)return; const cur=sel.value;
       const first=id.includes('Filter')?'<option value="">همه حساب‌ها</option>':'<option value="">— انتخاب نشده —</option>';
       sel.innerHTML=first+accounts.map(a=>`<option value="${escapeHtml(a.id)}">${a.active===false?'[غیرفعال] ':''}${escapeHtml(bankAccountLabel(a))}</option>`).join('');
@@ -2078,7 +2135,7 @@
     if(!filtered.length){ el.innerHTML=`<div class="empty">${arr.length?'رکوردی با این فیلتر پیدا نشد.':(kind==='income'?'هنوز درآمدی ثبت نشده.':'هنوز هزینه‌ای ثبت نشده.')}</div>`; return; }
     const groups={}; pageItems.forEach(t=>{(groups[t.cat]=groups[t.cat]||[]).push(t);}); let html='';
     Object.keys(groups).forEach(cat=>{ const items=groups[cat], pageTotal=items.reduce((x,t)=>x+Number(t.amount||0),0); html+=`<div class="fin-group ${kind}"><div class="fg-head"><span class="fg-title">${catIconHtml(items[0])}${escapeHtml(cat)}</span><span class="fg-total mono">${fmtMoney(pageTotal)} ${moneyUnit()}</span></div>`;
-      items.forEach(t=>{ const src=bankAccountById(t.sourceAccountId), dst=bankAccountById(t.destinationAccountId); html+=`<div class="fin-row"><div class="fr-info"><span class="fr-amount mono">${fmtMoney(t.amount)} ${moneyUnit()}</span><span class="mono">${escapeHtml(t.date||'')}</span>${t.time?`<span class="mono">${escapeHtml(t.time)}</span>`:''}${t.person?`<span>${escapeHtml(t.person)}</span>`:''}${t.method?`<span>· ${escapeHtml(t.method)}</span>`:''}${t.channel?`<span>· ${escapeHtml(t.channel)}</span>`:''}${src?`<span>· از: ${escapeHtml(bankAccountLabel(src))}</span>`:''}${dst?`<span>· به: ${escapeHtml(bankAccountLabel(dst))}</span>`:''}${t.tracking?`<span>· پیگیری: ${escapeHtml(t.tracking)}</span>`:''}${t.note?`<span>· ${escapeHtml(t.note)}</span>`:''}</div><div class="fr-btns"><button class="ghost small" data-action="copyfin" data-kind="${kind}" data-id="${t.id}">⧉ ثبت مشابه</button><button class="ghost small" data-action="editfin" data-kind="${kind}" data-id="${t.id}">✏️</button><button class="ghost small" data-action="deletefin" data-kind="${kind}" data-id="${t.id}" style="color:var(--seal);border-color:var(--seal);">🗑️</button></div></div>`; }); html+='</div>'; }); el.innerHTML=html;
+      items.forEach(t=>{ const src=bankAccountById(t.sourceAccountId), dst=bankAccountById(t.destinationAccountId), linked=t.sourceType==='installment'&&t.sourceLoanId&&t.sourcePaymentId; html+=`<div class="fin-row"><div class="fr-info"><span class="fr-amount mono">${fmtMoney(t.amount)} ${moneyUnit()}</span><span class="mono">${escapeHtml(t.date||'')}</span>${t.time?`<span class="mono">${escapeHtml(t.time)}</span>`:''}${t.person?`<span>${escapeHtml(t.person)}</span>`:''}${linked?'<span class="badge-ok">قسط</span>':''}${t.method?`<span>· ${escapeHtml(t.method)}</span>`:''}${t.channel?`<span>· ${escapeHtml(t.channel)}</span>`:''}${src?`<span>· از: ${escapeHtml(bankAccountLabel(src))}</span>`:''}${dst?`<span>· به: ${escapeHtml(bankAccountLabel(dst))}</span>`:''}${t.tracking?`<span>· پیگیری: ${escapeHtml(t.tracking)}</span>`:''}${t.note?`<span>· ${escapeHtml(t.note)}</span>`:''}</div><div class="fr-btns">${linked?`<button class="ghost small" data-action="editlinkedpayment" data-kind="${kind}" data-id="${t.id}">✏️ ویرایش پرداخت قسط</button>`:`<button class="ghost small" data-action="copyfin" data-kind="${kind}" data-id="${t.id}">⧉ ثبت مشابه</button><button class="ghost small" data-action="editfin" data-kind="${kind}" data-id="${t.id}">✏️</button><button class="ghost small" data-action="deletefin" data-kind="${kind}" data-id="${t.id}" style="color:var(--seal);border-color:var(--seal);">🗑️</button>`}</div></div>`; }); html+='</div>'; }); el.innerHTML=html;
   }
   const financeOverlay=document.getElementById('financeOverlay'); let editingFinanceId=null, editingFinanceKind='income', copiedFromFinanceId=null;
   function openFinanceModal(kind,item,opts={}){
@@ -2100,9 +2157,9 @@
     pushUndoSnapshot(); if(editingFinanceId){const t=arr.find(x=>x.id===editingFinanceId); if(t)Object.assign(t,data,{createdAt:t.createdAt||now});} else arr.push(Object.assign({id:uid(),icon:null,createdAt:now,copiedFromId:copiedFromFinanceId||null},data));
     save(); financeViewState[editingFinanceKind].page=1; render(); closeFinanceModal(); toast(editingFinanceKind==='income'?'درآمد ثبت شد':'هزینه ثبت شد');
   };
-  document.getElementById('btnDeleteFinance').onclick=()=>{ if(!editingFinanceId||!confirm('این تراکنش حذف شود؟'))return; const arr=editingFinanceKind==='income'?state.income:state.expenses; pushUndoSnapshot(); const idx=arr.findIndex(x=>x.id===editingFinanceId); if(idx>=0)arr.splice(idx,1); save();render();closeFinanceModal(); };
+  document.getElementById('btnDeleteFinance').onclick=()=>{ if(!editingFinanceId)return; const arr=editingFinanceKind==='income'?state.income:state.expenses; const item=arr.find(x=>x.id===editingFinanceId); if(item&&item.sourceType==='installment'){alert('این هزینه به یک پرداخت قسط متصل است. برای حذف یا اصلاح، از تاریخچه همان قسط استفاده کنید.');return;} if(!confirm('این تراکنش حذف شود؟'))return; pushUndoSnapshot(); const idx=arr.findIndex(x=>x.id===editingFinanceId); if(idx>=0)arr.splice(idx,1); save();render();closeFinanceModal(); };
   financeOverlay.addEventListener('click',e=>{if(e.target===financeOverlay)closeFinanceModal();});
-  ['incomeList','expenseList'].forEach(id=>document.getElementById(id).addEventListener('click',e=>{ const b=e.target.closest('button[data-action]'); if(!b)return; const kind=b.dataset.kind,arr=kind==='income'?state.income:state.expenses,item=arr.find(x=>x.id===b.dataset.id); if(!item)return; if(b.dataset.action==='editfin')openFinanceModal(kind,item); if(b.dataset.action==='copyfin')openFinanceModal(kind,item,{copy:true}); if(b.dataset.action==='deletefin'){if(!confirm('این تراکنش حذف شود؟'))return;pushUndoSnapshot();arr.splice(arr.indexOf(item),1);save();render();}}));
+  ['incomeList','expenseList'].forEach(id=>document.getElementById(id).addEventListener('click',e=>{ const b=e.target.closest('button[data-action]'); if(!b)return; const kind=b.dataset.kind,arr=kind==='income'?state.income:state.expenses,item=arr.find(x=>x.id===b.dataset.id); if(!item)return; if(b.dataset.action==='editlinkedpayment'){ const l=state.loans.find(x=>x.id===item.sourceLoanId); if(!l)return; const idx=(l.history||[]).findIndex(h=>h.id===item.sourcePaymentId); if(idx>=0)openEditHistModal('loan',l.id,idx); return; } if(b.dataset.action==='editfin')openFinanceModal(kind,item); if(b.dataset.action==='copyfin')openFinanceModal(kind,item,{copy:true}); if(b.dataset.action==='deletefin'){if(item.sourceType==='installment'){alert('این هزینه به پرداخت قسط متصل است؛ از تاریخچه قسط حذف کنید.');return;} if(!confirm('این تراکنش حذف شود؟'))return;pushUndoSnapshot();arr.splice(arr.indexOf(item),1);save();render();}}));
   ['income','expense'].forEach(kind=>{
     const rerender=()=>{financeViewState[kind].page=1;renderFinanceList(kind+'List',kind==='income'?state.income:state.expenses,kind);};
     ['Search','FilterPerson','DateFrom','DateTo','AmountMin','AmountMax'].forEach(suf=>document.getElementById(kind+suf).addEventListener('input',rerender)); ['FilterMethod','FilterAccount','PageSize'].forEach(suf=>document.getElementById(kind+suf).addEventListener('change',rerender));
@@ -2207,6 +2264,7 @@
     });
     state.loans.forEach(l => {
       (l.history || []).forEach(h => {
+        if(linkedExpenseExists(h)) return;
         const p = parseJalali(h.date);
         if (p) entries.push({jy: p.jy, jm: p.jm, type: 'expense', amount: Number(h.amount != null ? h.amount : l.amount), cat: `${l.cat} (قسط)`});
       });
@@ -2334,6 +2392,7 @@
     // also fold in installment payments + "other" payments as part of "expense"
     state.loans.forEach(l => {
       (l.history || []).forEach(h => {
+        if(linkedExpenseExists(h)) return;
         const p = parseJalali(h.date);
         if (!p) return;
         const key = `${p.jy}/${String(p.jm).padStart(2,'0')}`;
@@ -2633,7 +2692,7 @@
   }
 
   function buildLoanCardEl(l){
-    if (Array.isArray(l.schedule) && l.schedule.length) syncLoanFromSchedule(l);
+    if (Array.isArray(l.schedule) && l.schedule.length){ reconcileLoanScheduleWithHistory(l); syncLoanFromSchedule(l); }
     const hasSchedule = getLoanSchedule(l).length > 0;
     const unpaid = Math.max(l.total - l.paid, 0);
     const pct = l.total > 0 ? Math.min(100, Math.round((l.paid / l.total) * 100)) : 0;
@@ -2669,7 +2728,7 @@
         payBtns = `<button class="seal-btn small" data-action="deposit" data-id="${l.id}">واریز کردم</button>`;
       }
     } else {
-      payBtns = `<button class="seal-btn small" data-action="pay" data-id="${l.id}">ثبت پرداخت</button>`;
+      payBtns = `<button class="seal-btn small" data-action="pay" data-id="${l.id}">${hasSchedule?'پرداخت قسط بعدی':'ثبت پرداخت'}</button>`;
     }
 
     const card = document.createElement('div');
@@ -2767,7 +2826,10 @@
           ${h.depositedAt && h.depositedAt !== h.date ? `<span>واریز شد: <b class="mono">${escapeHtml(h.depositedAt)}</b></span>` : ''}
           ${h.paymentIdentifier ? `<span>شناسه: <b class="mono">${escapeHtml(h.paymentIdentifier)}</b></span>` : ''}
           ${h.tracking ? `<span>پیگیری: <b class="mono">${escapeHtml(h.tracking)}</b></span>` : ''}
-          ${h.method ? `<span>${escapeHtml(h.method)}</span>` : ''}
+          ${h.method ? `<span>روش: ${escapeHtml(h.method)}</span>` : ''}
+          ${h.channel ? `<span>کانال: ${escapeHtml(h.channel)}</span>` : ''}
+          ${h.sourceAccountId && bankAccountById(h.sourceAccountId) ? `<span>از: ${escapeHtml(bankAccountLabel(bankAccountById(h.sourceAccountId)))}</span>` : ''}
+          ${h.expenseId ? `<span class="muted">· ثبت‌شده در هزینه‌ها</span>` : ''}
           ${h.note ? `<span>${escapeHtml(h.note)}</span>` : ''}
           <span class="hr-edit"><button data-action="edithist" data-type="loan" data-histid="${l.id}" data-idx="${origIdx}">✏️ ویرایش</button></span>
         </div>`;
@@ -2839,7 +2901,9 @@
             histHtml += `<div class="hist-row">
               <span class="hr-date">${escapeHtml(h.date || '')}</span>
               ${h.time ? `<span class="mono">${escapeHtml(h.time)}</span>` : ''}
-              ${h.method ? `<span class="hr-method">${escapeHtml(h.method)}</span>` : ''}
+              ${h.method ? `<span class="hr-method">روش: ${escapeHtml(h.method)}</span>` : ''}
+              ${h.channel ? `<span>کانال: ${escapeHtml(h.channel)}</span>` : ''}
+              ${h.sourceAccountId && bankAccountById(h.sourceAccountId) ? `<span>از: ${escapeHtml(bankAccountLabel(bankAccountById(h.sourceAccountId)))}</span>` : ''}
               ${h.tracking ? `<span>پیگیری: <b class="mono">${escapeHtml(h.tracking)}</b></span>` : ''}
               ${h.note ? `<span>یادداشت: ${escapeHtml(h.note)}</span>` : ''}
               <span class="hr-edit"><button data-action="edithist" data-type="simple" data-histid="${s.id}" data-idx="${origIdx}">✏️ ویرایش</button></span>
@@ -2983,6 +3047,8 @@
       paidTime: String(raw.paidTime || '').trim(),
       tracking: String(raw.tracking || '').trim(),
       method: String(raw.method || '').trim(),
+      channel: String(raw.channel || '').trim(),
+      sourceAccountId: raw.sourceAccountId ? String(raw.sourceAccountId) : null,
       note: String(raw.note || '').trim()
     };
   }
@@ -3002,7 +3068,28 @@
     if(next && next.amount) l.amount=Number(next.amount)||l.amount;
     return l;
   }
-  function nextUnpaidInstallment(l){ return getLoanSchedule(l).find(x=>!x.paid) || null; }
+  function reconcileLoanScheduleWithHistory(l){
+    if(!l || !Array.isArray(l.schedule) || !l.schedule.length) return false;
+    const schedule=getLoanSchedule(l); let changed=false;
+    (l.history||[]).forEach(h=>{
+      normalizePaymentFields(h);
+      let item=null;
+      if(h.installmentId) item=schedule.find(x=>x.id===h.installmentId);
+      if(!item && (h.installmentSeq||h.seq)) item=schedule.find(x=>Number(x.seq)===Number(h.installmentSeq||h.seq));
+      if(!item && h.paymentIdentifier) item=schedule.find(x=>x.paymentId && x.paymentId===h.paymentIdentifier);
+      if(!item) return;
+      if(h.installmentId!==item.id){h.installmentId=item.id;changed=true;}
+      if(Number(h.installmentSeq)!==Number(item.seq)){h.installmentSeq=item.seq;changed=true;}
+      if(!h.paymentIdentifier && item.paymentId){h.paymentIdentifier=item.paymentId;changed=true;}
+      if(!item.paid || item.paidAt!==String(h.date||'')){changed=true;}
+      item.paid=true; item.paidAt=String(h.date||''); item.paidTime=String(h.time||''); item.tracking=String(h.tracking||''); item.method=String(h.method||''); item.channel=String(h.channel||''); item.sourceAccountId=h.sourceAccountId||null; item.note=String(h.note||'');
+      if(Number(h.amount)>0) item.amount=Number(h.amount);
+      if(h.paymentIdentifier) item.paymentId=h.paymentIdentifier;
+    });
+    if(changed){l.schedule=schedule;syncLoanFromSchedule(l);} else l.schedule=schedule;
+    return changed;
+  }
+  function nextUnpaidInstallment(l){ reconcileLoanScheduleWithHistory(l); return getLoanSchedule(l).find(x=>!x.paid) || null; }
   function scheduleItemStatus(item){
     if(item.paid) return 'paid';
     if(item.dueDate){
@@ -3027,7 +3114,7 @@
           <span class="mono">${escapeHtml(item.dueDate||'—')}</span>
           <span class="inst-amount mono">${fmtMoney(item.amount||l.amount)} ${moneyUnit()}</span>
           <span class="inst-id">${item.paymentId ? `شناسه: <b class="mono">${escapeHtml(item.paymentId)}</b> <button class="ghost small" data-action="copyinstid" data-value="${escapeHtml(item.paymentId)}">کپی</button>` : 'شناسه: —'}</span>
-          <span class="inst-actions">${item.paid ? `<span class="inst-status">${statusText}</span>` : `<span>${statusText}</span><button class="seal-btn small" data-action="payinstallment" data-id="${l.id}" data-instid="${item.id}">ثبت پرداخت</button>`}</span>
+          <span class="inst-actions">${item.paid ? `<span class="inst-status">${statusText}</span>` : `<span>${statusText}</span><button class="seal-btn small" data-action="payinstallment" data-id="${l.id}" data-instid="${item.id}">پرداخت این قسط</button>`}</span>
         </div>`;
       }).join('')+'</div>';
     }
@@ -3043,7 +3130,7 @@
       <input type="text" data-field="dueDate" value="${escapeHtml(x.dueDate||'')}" placeholder="۱۴۰۵/۰۶/۱۰">
       <input type="text" data-field="amount" inputmode="numeric" value="${x.amount?toFa(x.amount):''}" placeholder="مبلغ">
       <input type="text" data-field="paymentId" value="${escapeHtml(x.paymentId||'')}" placeholder="شناسه پرداخت">
-      <span class="schedule-row-actions">${x.paid?'<span class="status-paid">✓ پرداخت‌شده</span>':'<span class="status-open">در انتظار</span>'} <button type="button" class="ghost small" data-schedule-remove="${x.id}" ${x.paid?'disabled title="قسط پرداخت‌شده را ابتدا از تاریخچه پرداخت برگردانید"':''}>حذف</button></span>
+      <span class="schedule-row-actions">${x.paid?`<span class="status-paid">✓ پرداخت‌شده${x.method?' · '+escapeHtml(x.method):''}${x.channel?' / '+escapeHtml(x.channel):''}</span>`:'<span class="status-open">در انتظار</span>'} <button type="button" class="ghost small" data-schedule-remove="${x.id}" ${x.paid?'disabled title="قسط پرداخت‌شده را ابتدا از تاریخچه پرداخت برگردانید"':''}>حذف</button></span>
     </div>`).join('');
   }
   function readScheduleEditor(){
@@ -3125,6 +3212,9 @@
       let due=''; if(nextDue && parseJalali(nextDue)) due=addJalaliMonths(nextDue,(seq-paid-1)*cycle);
       scheduleDraft.push(old ? Object.assign({},old,{seq,dueDate:old.dueDate||due,amount:old.amount||amount}) : normalizedScheduleItem({id:uid(),seq,dueDate:due,amount,paymentId:'',paid:seq<=paid},seq,amount));
     }
+    if(editingLoanId){
+      const srcLoan=state.loans.find(x=>x.id===editingLoanId); if(srcLoan){ const tmp=Object.assign({},srcLoan,{schedule:scheduleDraft.map(x=>Object.assign({},x))}); reconcileLoanScheduleWithHistory(tmp); scheduleDraft=getLoanSchedule(tmp); }
+    }
     renderScheduleEditor();
     toast('برنامه اقساط ساخته شد؛ شناسه‌ها را وارد یا گروهی Paste کنید');
   };
@@ -3179,7 +3269,7 @@
     if (editingLoanId){
       pushUndoSnapshot();
       const l = state.loans.find(x => x.id === editingLoanId);
-      Object.assign(l, data);
+      Object.assign(l, data); reconcileLoanScheduleWithHistory(l); syncLoanFromSchedule(l);
     } else {
       pushUndoSnapshot();
       state.loans.push(Object.assign({id: uid(), lastPay:"", pendingSince:null}, data));
@@ -3194,6 +3284,7 @@
     const ok = await confirmDestructive(`حذف «${l.cat} — ${l.person}»`, 'حذف کن');
     if (!ok) return;
     pushUndoSnapshot();
+    detachExpensesForDeletedLoan(l);
     state.loans = state.loans.filter(x => x.id !== editingLoanId);
     save(); render(); closeLoanModal();
   };
@@ -3273,6 +3364,8 @@
     document.getElementById('spTime').value = nowTimeStr();
     document.getElementById('spTracking').value = '';
     document.getElementById('spMethod').value = '';
+    document.getElementById('spChannel').value = '';
+    refreshFinanceAccountSelects(); document.getElementById('spSourceAccount').value = '';
     document.getElementById('spNote').value = '';
     simplePaymentOverlay.classList.add('show');
   }
@@ -3291,6 +3384,8 @@
       time: document.getElementById('spTime').value.trim(),
       tracking: document.getElementById('spTracking').value.trim(),
       method: document.getElementById('spMethod').value.trim(),
+      channel: document.getElementById('spChannel').value.trim(),
+      sourceAccountId: document.getElementById('spSourceAccount').value||null,
       note: document.getElementById('spNote').value.trim()
     };
     pushUndoSnapshot();
@@ -3336,8 +3431,14 @@
     document.getElementById('editHistTitle').textContent = title;
     document.getElementById('ehDate').value = entry.date || '';
     document.getElementById('ehTime').value = entry.time || '';
+    normalizePaymentFields(entry);
+    const isLoan=type==='loan'; document.getElementById('ehLoanFields').style.display=isLoan?'grid':'none';
+    document.getElementById('ehAmount').value = isLoan ? toFa(entry.amount||0) : '';
+    document.getElementById('ehPaymentIdentifier').value = isLoan ? (entry.paymentIdentifier||'') : '';
     document.getElementById('ehTracking').value = entry.tracking || '';
     document.getElementById('ehMethod').value = entry.method || '';
+    document.getElementById('ehChannel').value = entry.channel || '';
+    refreshFinanceAccountSelects(); document.getElementById('ehSourceAccount').value = entry.sourceAccountId || '';
     document.getElementById('ehNote').value = entry.note || '';
     document.getElementById('btnDeleteHistEntry').style.display = '';
     editHistOverlay.classList.add('show');
@@ -3357,10 +3458,20 @@
     const entry = hist[entryIdx];
     entry.date = document.getElementById('ehDate').value.trim() || entry.date;
     entry.time = document.getElementById('ehTime').value.trim();
+    if(type==='loan'){
+      entry.amount = Math.max(readNum('ehAmount'),0) || entry.amount;
+      entry.paymentIdentifier = document.getElementById('ehPaymentIdentifier').value.trim();
+    }
     entry.tracking = document.getElementById('ehTracking').value.trim();
     entry.method = document.getElementById('ehMethod').value.trim();
+    entry.channel = document.getElementById('ehChannel').value.trim();
+    entry.sourceAccountId = document.getElementById('ehSourceAccount').value||null;
     entry.note = document.getElementById('ehNote').value.trim();
-    if(type==='loan' && entry.installmentId){ const l=state.loans.find(x=>x.id===id); const it=getLoanSchedule(l).find(x=>x.id===entry.installmentId); if(it){ it.paidAt=entry.date; it.paidTime=entry.time; it.tracking=entry.tracking; it.method=entry.method; it.note=entry.note; l.schedule=getLoanSchedule(l); syncLoanFromSchedule(l); } }
+    if(type==='loan'){
+      const l=state.loans.find(x=>x.id===id);
+      if(entry.installmentId){ const it=getLoanSchedule(l).find(x=>x.id===entry.installmentId); if(it){ it.paidAt=entry.date; it.paidTime=entry.time; it.tracking=entry.tracking; it.method=entry.method; it.channel=entry.channel; it.sourceAccountId=entry.sourceAccountId; it.note=entry.note; it.amount=entry.amount||it.amount; if(entry.paymentIdentifier)it.paymentId=entry.paymentIdentifier; l.schedule=getLoanSchedule(l); syncLoanFromSchedule(l); } }
+      syncLinkedExpenseFromPayment(l,entry);
+    }
     save(); render(); closeEditHistModal();
     toast('پرداخت ویرایش شد');
   };
@@ -3374,14 +3485,14 @@
       const l = state.loans.find(x => x.id === id);
       hist = l.history;
       pushUndoSnapshot();
-      const removedEntry=hist[entryIdx]; hist.splice(entryIdx, 1);
+      const removedEntry=hist[entryIdx]; hist.splice(entryIdx, 1); unlinkExpenseFromPayment(removedEntry);
       if(removedEntry && removedEntry.installmentId && Array.isArray(l.schedule)){
-        const it=l.schedule.find(x=>x.id===removedEntry.installmentId); if(it){ it.paid=false; it.paidAt=''; it.paidTime=''; it.tracking=''; it.method=''; it.note=''; } syncLoanFromSchedule(l);
+        const it=l.schedule.find(x=>x.id===removedEntry.installmentId); if(it){ it.paid=false; it.paidAt=''; it.paidTime=''; it.tracking=''; it.method=''; it.channel=''; it.sourceAccountId=null; it.note=''; } syncLoanFromSchedule(l);
       } else {
         l.paid = Math.max(l.paid - 1, 0);
       }
       const last = hist.length > 0 ? hist.slice().sort((a,b)=>dateTimeSortKey(b.date,b.time)-dateTimeSortKey(a.date,a.time))[0] : null;
-      l.lastPay = last ? last.date : (entry.prevLastPay || '');
+      l.lastPay = last ? last.date : (removedEntry && removedEntry.prevLastPay ? removedEntry.prevLastPay : '');
     } else {
       const s = state.simple.find(x => x.id === id);
       hist = s.history;
@@ -3396,6 +3507,7 @@
   const receiptOverlay = document.getElementById('receiptOverlay');
   const paymentOverlay = document.getElementById('paymentOverlay');
   let lastPaidLoanId = null;
+  let lastPaidPaymentId = null;
   let pendingPaymentLoanId = null;
   let pendingPaymentInstallmentId = null;
   const AUTO_CONFIRM_DAYS = 4;
@@ -3406,14 +3518,47 @@
     return toFa(`${pad(d.getHours())}:${pad(d.getMinutes())}`);
   }
 
-  function finalizePayment(l, details, installmentId){
+  function expenseById(id){ return id ? state.expenses.find(x=>x.id===id)||null : null; }
+  function linkedExpenseExists(h){ return !!(h && h.expenseId && expenseById(h.expenseId)); }
+  function findMatchingExpenseForInstallment(l,details){
+    const amount=Number(details.amount||0), date=String(details.date||'');
+    return state.expenses.filter(t=>!t.sourcePaymentId && Number(t.amount||0)===amount && String(t.date||'')===date).sort((a,b)=>{
+      const ap=(String(a.person||'')===String(l.person||''))?1:0, bp=(String(b.person||'')===String(l.person||''))?1:0;
+      return bp-ap;
+    });
+  }
+  function syncLinkedExpenseFromPayment(l,h){
+    const ex=expenseById(h&&h.expenseId); if(!ex)return;
+    ex.amount=Number(h.amount||0); ex.date=h.date||''; ex.time=h.time||''; ex.method=h.method||''; ex.channel=h.channel||''; ex.sourceAccountId=h.sourceAccountId||null; ex.tracking=h.tracking||''; ex.reference=h.paymentIdentifier||''; ex.updatedAt=new Date().toISOString(); ex.sourceType='installment'; ex.sourceLoanId=l.id; ex.sourcePaymentId=h.id;
+  }
+  function linkExpenseToPayment(l,h,details,existingExpenseId){
+    const now=new Date().toISOString(); let ex=existingExpenseId?expenseById(existingExpenseId):null;
+    if(ex){
+      h.expenseId=ex.id; h.expenseLinkMode='linked'; ex.sourceType='installment'; ex.sourceLoanId=l.id; ex.sourcePaymentId=h.id; ex.updatedAt=now;
+      if(!ex.method)ex.method=h.method||''; if(!ex.channel)ex.channel=h.channel||''; if(!ex.sourceAccountId)ex.sourceAccountId=h.sourceAccountId||null; if(!ex.tracking)ex.tracking=h.tracking||''; if(!ex.reference)ex.reference=h.paymentIdentifier||'';
+      return ex;
+    }
+    ex={id:uid(),cat:l.cat,amount:Number(h.amount||0),date:h.date||'',time:h.time||'',person:l.person||'',method:h.method||'',channel:h.channel||'',sourceAccountId:h.sourceAccountId||null,destinationAccountId:null,tracking:h.tracking||'',reference:h.paymentIdentifier||'',note:h.note||'',copiedFromId:null,createdAt:now,updatedAt:now,icon:null,sourceType:'installment',sourceLoanId:l.id,sourcePaymentId:h.id};
+    state.expenses.push(ex); h.expenseId=ex.id; h.expenseLinkMode='created'; return ex;
+  }
+  function unlinkExpenseFromPayment(h){
+    if(!h || !h.expenseId)return; const ex=expenseById(h.expenseId);
+    if(ex){
+      if(h.expenseLinkMode==='created') state.expenses=state.expenses.filter(x=>x.id!==ex.id);
+      else { delete ex.sourceType; delete ex.sourceLoanId; delete ex.sourcePaymentId; ex.updatedAt=new Date().toISOString(); }
+    }
+    h.expenseId=null; h.expenseLinkMode=null;
+  }
+
+  function finalizePayment(l, details, installmentId, existingExpenseId){
     const prevLastPay = l.lastPay;
     const schedule=getLoanSchedule(l);
     let target=null;
     if(schedule.length){
       target=schedule.find(x=>x.id===(installmentId||pendingPaymentInstallmentId)) || schedule.find(x=>!x.paid);
       if(!target || target.paid) return false;
-      target.paid=true; target.paidAt=details.date||todayJalaliStr(); target.paidTime=details.time||''; target.tracking=details.tracking||''; target.method=details.method||''; target.note=details.note||'';
+      target.paid=true; target.paidAt=details.date||todayJalaliStr(); target.paidTime=details.time||''; target.tracking=details.tracking||''; target.method=details.method||''; target.channel=details.channel||''; target.sourceAccountId=details.sourceAccountId||null; target.note=details.note||'';
+      if(Number(details.amount)>0) target.amount=Number(details.amount); if(details.paymentIdentifier!=null) target.paymentId=String(details.paymentIdentifier||'').trim();
       l.schedule=schedule;
       syncLoanFromSchedule(l);
     } else {
@@ -3433,14 +3578,19 @@
       time: details.time || '',
       tracking: details.tracking || '',
       method: details.method || '',
+      channel: details.channel || '',
+      sourceAccountId: details.sourceAccountId || null,
       note: details.note || '',
       depositedAt: details.depositedAt || null,
-      amount: target ? (target.amount||l.amount) : l.amount,
+      amount: Number(details.amount)|| (target ? (target.amount||l.amount) : l.amount),
       loanCat: l.cat,
       loanPerson: l.person,
       prevLastPay
     });
-    return true;
+    const h=l.history[l.history.length-1];
+    if(details.paymentIdentifier!=null) h.paymentIdentifier=String(details.paymentIdentifier||'').trim();
+    linkExpenseToPayment(l,h,details,existingExpenseId||null);
+    return h;
   }
   function reversePayment(l){
     if (l.paid <= 0) return;
@@ -3449,7 +3599,8 @@
     const schedule=getLoanSchedule(l);
     if(schedule.length && removed && removed.installmentId){
       const item=schedule.find(x=>x.id===removed.installmentId);
-      if(item){ item.paid=false; item.paidAt=''; item.paidTime=''; item.tracking=''; item.method=''; item.note=''; }
+      if(item){ item.paid=false; item.paidAt=''; item.paidTime=''; item.tracking=''; item.method=''; item.channel=''; item.sourceAccountId=null; item.note=''; }
+      unlinkExpenseFromPayment(removed);
       l.schedule=schedule; l.history=(l.history||[]).filter(h=>h.id!==removed.id); syncLoanFromSchedule(l);
       const mostRecent=(l.history||[]).slice().sort((a,b)=>dateTimeSortKey(b.date,b.time)-dateTimeSortKey(a.date,a.time))[0]; l.lastPay=mostRecent?mostRecent.date:'';
       return;
@@ -3464,6 +3615,7 @@
         return (Number(b.paymentNo)||0)-(Number(a.paymentNo)||0);
       })[0] || null;
       if(latest){
+        unlinkExpenseFromPayment(latest);
         l.history = l.history.filter(h => h.id !== latest.id);
         const mostRecent = l.history.slice().sort((a, b) => {
           const ka=dateTimeSortKey(a.date,a.time), kb=dateTimeSortKey(b.date,b.time);
@@ -3489,8 +3641,13 @@
     else ctx.style.display='none';
     document.getElementById('pdDate').value = l.pendingSince || todayJalaliStr();
     document.getElementById('pdTime').value = nowTimeStr();
+    document.getElementById('pdAmount').value = toFa(inst ? (inst.amount||l.amount) : l.amount);
+    document.getElementById('pdPaymentIdentifier').value = inst ? (inst.paymentId||'') : '';
     document.getElementById('pdTracking').value = '';
-    document.getElementById('pdMethod').value = l.autoDebit ? 'برداشت خودکار بانک' : '';
+    document.getElementById('pdMethod').value = l.autoDebit ? 'برداشت مستقیم / خودکار' : '';
+    document.getElementById('pdChannel').value = l.autoDebit ? 'خودکار' : '';
+    refreshFinanceAccountSelects();
+    const def=state.bankAccounts.find(a=>a.isDefault&&a.active!==false); document.getElementById('pdSourceAccount').value=def?def.id:'';
     document.getElementById('pdNote').value = '';
     paymentOverlay.classList.add('show');
   }
@@ -3506,28 +3663,55 @@
     const details = {
       date: document.getElementById('pdDate').value.trim() || todayJalaliStr(),
       time: document.getElementById('pdTime').value.trim(),
+      amount: Math.max(readNum('pdAmount'),0),
+      paymentIdentifier: document.getElementById('pdPaymentIdentifier').value.trim(),
       tracking: document.getElementById('pdTracking').value.trim(),
       method: document.getElementById('pdMethod').value.trim(),
+      channel: document.getElementById('pdChannel').value.trim(),
+      sourceAccountId: document.getElementById('pdSourceAccount').value||null,
       note: document.getElementById('pdNote').value.trim(),
       depositedAt: l.pendingSince || null
     };
+    if(!details.amount){alert('مبلغ پرداخت را وارد کنید.');return;}
+    let existingExpenseId=null; const matches=findMatchingExpenseForInstallment(l,details);
+    if(matches.length){
+      const ex=matches[0]; const yes=confirm(`یک هزینه با همین مبلغ و تاریخ از قبل وجود دارد:
+${ex.cat}${ex.person?' — '+ex.person:''}
+${fmtMoney(ex.amount)} ${moneyUnit()} — ${ex.date}
+
+برای جلوگیری از دوباره‌شماری، این هزینه به پرداخت قسط متصل شود؟
+تأیید = اتصال همان هزینه
+انصراف = ایجاد هزینه جدید`);
+      if(yes) existingExpenseId=ex.id;
+    }
     pushUndoSnapshot();
-    if(!finalizePayment(l, details, pendingPaymentInstallmentId)){ alert('این قسط قبلاً پرداخت شده یا قابل شناسایی نیست.'); return; }
+    const createdPayment=finalizePayment(l, details, pendingPaymentInstallmentId, existingExpenseId);
+    if(!createdPayment){ alert('این قسط قبلاً پرداخت شده یا قابل شناسایی نیست.'); return; }
     save();
     closePaymentModal();
     render();
-    showReceipt(l, details);
+    showReceipt(l, details, createdPayment);
   };
   paymentOverlay.addEventListener('click', (e) => { if (e.target === paymentOverlay) closePaymentModal(); });
 
   function registerPayment(loanId){ openPaymentModal(loanId); }
 
+  function removeLoanPaymentById(l,paymentId){
+    if(!l || !paymentId || !Array.isArray(l.history))return false;
+    const idx=l.history.findIndex(h=>h.id===paymentId); if(idx<0)return false;
+    const removed=l.history[idx]; unlinkExpenseFromPayment(removed); l.history.splice(idx,1);
+    if(removed.installmentId && Array.isArray(l.schedule)){
+      const item=l.schedule.find(x=>x.id===removed.installmentId); if(item){item.paid=false;item.paidAt='';item.paidTime='';item.tracking='';item.method='';item.channel='';item.sourceAccountId=null;item.note='';} syncLoanFromSchedule(l);
+    } else l.paid=Math.max(Number(l.paid||0)-1,0);
+    const recent=(l.history||[]).slice().sort((a,b)=>dateTimeSortKey(b.date,b.time)-dateTimeSortKey(a.date,a.time))[0]; l.lastPay=recent?recent.date:(removed.prevLastPay||'');
+    return true;
+  }
   function undoLastPayment(){
     if (!lastPaidLoanId) return;
     const l = state.loans.find(x => x.id === lastPaidLoanId);
     if (!l) return;
     pushUndoSnapshot();
-    reversePayment(l);
+    if(lastPaidPaymentId) removeLoanPaymentById(l,lastPaidPaymentId); else reversePayment(l);
     save(); render();
     closeReceipt();
   }
@@ -3583,6 +3767,9 @@
     }
   }
 
+  function detachExpensesForDeletedLoan(l){
+    (l&&l.history||[]).forEach(h=>{ const ex=expenseById(h.expenseId); if(ex){ delete ex.sourceType; delete ex.sourceLoanId; delete ex.sourcePaymentId; ex.updatedAt=new Date().toISOString(); } });
+  }
   async function deleteLoanDirect(loanId){
     const l = state.loans.find(x => x.id === loanId);
     if (!l) return;
@@ -3590,6 +3777,7 @@
     const ok = await confirmDestructive(`حذف «${l.cat} — ${l.person}»`, 'حذف کن');
     if (!ok) return;
     pushUndoSnapshot();
+    detachExpensesForDeletedLoan(l);
     state.loans = state.loans.filter(x => x.id !== loanId);
     save(); render();
     toast('ردیف حذف شد');
@@ -3636,13 +3824,13 @@
     }
   }
 
-  function showReceipt(l, details){
+  function showReceipt(l, details, paymentEntry){
     details = details || {};
-    lastPaidLoanId = l.id;
+    lastPaidLoanId = l.id; lastPaidPaymentId = paymentEntry ? paymentEntry.id : null;
     const unpaid = Math.max(l.total - l.paid, 0);
     document.getElementById('rTitle').textContent = l.cat;
     document.getElementById('rPerson').textContent = l.person || '—';
-    const latestHist=(l.history||[]).slice().sort((a,b)=>dateTimeSortKey(b.date,b.time)-dateTimeSortKey(a.date,a.time))[0];
+    const latestHist=paymentEntry || (l.history||[]).slice().sort((a,b)=>dateTimeSortKey(b.date,b.time)-dateTimeSortKey(a.date,a.time))[0];
     document.getElementById('rAmount').textContent = fmtMoney(latestHist && latestHist.amount ? latestHist.amount : l.amount) + ' ' + moneyUnit();
     document.getElementById('rSeq').textContent = latestHist && latestHist.seq ? toFa(latestHist.seq) + ' از ' + toFa(l.total) : toFa(l.paid) + ' از ' + toFa(l.total);
     document.getElementById('rRemain').textContent = toFa(unpaid) + ' قسط';
@@ -3656,6 +3844,7 @@
     setRow('rTimeRow', 'rTime', details.time);
     setRow('rTrackingRow', 'rTracking', details.tracking);
     setRow('rMethodRow', 'rMethod', details.method);
+    setRow('rChannelRow', 'rChannel', details.channel);
     setRow('rNoteRow', 'rNote', details.note);
 
     // restart stamp animation
@@ -3667,7 +3856,7 @@
   }
   function closeReceipt(){
     receiptOverlay.classList.remove('show');
-    lastPaidLoanId = null;
+    lastPaidLoanId = null; lastPaidPaymentId = null;
   }
   document.getElementById('btnCloseReceipt').onclick = closeReceipt;
   document.getElementById('btnUndoPay').onclick = undoLastPayment;
@@ -3874,7 +4063,7 @@
       'برنامه ساختاریافته': getLoanSchedule(l).length ? 'بله' : 'خیر'
     }));
     const scheduleRows=[];
-    state.loans.forEach(l=>getLoanSchedule(l).forEach(x=>scheduleRows.push({'عنوان':l.cat,'شخص':l.person,'شماره قسط':x.seq,'سررسید':x.dueDate||'',[`مبلغ (${unit})`]:conv(x.amount||l.amount),'شناسه پرداخت':x.paymentId||'','وضعیت':x.paid?'پرداخت‌شده':'در انتظار','تاریخ پرداخت':x.paidAt||'','پیگیری':x.tracking||'','روش پرداخت':x.method||''})));
+    state.loans.forEach(l=>getLoanSchedule(l).forEach(x=>scheduleRows.push({'عنوان':l.cat,'شخص':l.person,'شماره قسط':x.seq,'سررسید':x.dueDate||'',[`مبلغ (${unit})`]:conv(x.amount||l.amount),'شناسه پرداخت':x.paymentId||'','وضعیت':x.paid?'پرداخت‌شده':'در انتظار','تاریخ پرداخت':x.paidAt||'','پیگیری':x.tracking||'','روش پرداخت':x.method||'','کانال پرداخت':x.channel||'','حساب مبدأ':bankAccountLabel(bankAccountById(x.sourceAccountId))})));
     const historyRows = [];
     state.loans.forEach(l => {
       (l.history || []).forEach(h => {
@@ -3887,6 +4076,10 @@
           'ساعت': h.time || '',
           'شماره پیگیری/تراکنش': h.tracking || '',
           'روش پرداخت': h.method || '',
+          'کانال پرداخت': h.channel || '',
+          'حساب مبدأ': bankAccountLabel(bankAccountById(h.sourceAccountId)),
+          'شناسه پرداخت': h.paymentIdentifier || '',
+          'هزینه مرتبط': h.expenseId || '',
           'یادداشت': h.note || ''
         });
       });
@@ -3912,7 +4105,7 @@
       'دسته': t.cat, [`مبلغ (${unit})`]: conv(t.amount), 'تاریخ': t.date || '', 'ساعت': t.time || '',
       'گیرنده/فروشگاه': t.person || '', 'روش': t.method || '', 'کانال': t.channel || '',
       'حساب مبدأ': bankAccountLabel(bankAccountById(t.sourceAccountId)), 'حساب مقصد': bankAccountLabel(bankAccountById(t.destinationAccountId)),
-      'شماره پیگیری': t.tracking || '', 'شناسه واریز/مرجع': t.reference || '', 'ثبت مشابه از': t.copiedFromId || '', 'یادداشت': t.note || ''
+      'شماره پیگیری': t.tracking || '', 'شناسه واریز/مرجع': t.reference || '', 'ثبت مشابه از': t.copiedFromId || '', 'منبع': t.sourceType==='installment'?'پرداخت قسط':'دستی', 'شناسه پرداخت مرتبط': t.sourcePaymentId||'', 'یادداشت': t.note || ''
     }));
     XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(expenseRows), 'هزینه‌ها');
     const accountRows=state.bankAccounts.map(a=>({'عنوان':a.title||'','صاحب حساب':a.owner||'','بانک':a.bank||'','نوع حساب':a.type||'','شماره حساب':a.accountNumber||'','شماره کارت':a.cardNumber||'','شماره شبا':a.iban||'','پیش‌فرض':a.isDefault?'بله':'خیر','فعال':a.active===false?'خیر':'بله','یادداشت':a.note||''}));
@@ -4103,12 +4296,12 @@
         pendingSince: raw.pendingSince ? String(raw.pendingSince).trim() : null,
         icon: iconOf(raw.icon),
         schedule: Array.isArray(raw.schedule) ? raw.schedule.filter(x=>x&&typeof x==='object'&&!Array.isArray(x)).map((x,j)=>({
-          id: idOf(x), seq: Math.max(num(x.seq)||j+1,1), dueDate:String(x.dueDate||'').trim(), amount:Math.max(num(x.amount||raw.amount),0), paymentId:String(x.paymentId||x.paymentIdentifier||'').trim(), paid:!!x.paid, paidAt:String(x.paidAt||'').trim(), paidTime:String(x.paidTime||'').trim(), tracking:String(x.tracking||'').trim(), method:String(x.method||'').trim(), note:String(x.note||'').trim()
+          id: idOf(x), seq: Math.max(num(x.seq)||j+1,1), dueDate:String(x.dueDate||'').trim(), amount:Math.max(num(x.amount||raw.amount),0), paymentId:String(x.paymentId||x.paymentIdentifier||'').trim(), paid:!!x.paid, paidAt:String(x.paidAt||'').trim(), paidTime:String(x.paidTime||'').trim(), tracking:String(x.tracking||'').trim(), method:String(x.method||'').trim(), channel:String(x.channel||'').trim(), sourceAccountId:x.sourceAccountId?String(x.sourceAccountId):null, note:String(x.note||'').trim()
         })) : [],
         history: Array.isArray(raw.history) ? raw.history : []
       };
     });
-    loans.forEach(l=>{ if(Array.isArray(l.schedule)&&l.schedule.length) syncLoanFromSchedule(l); ensureLoanHistoryPaymentNumbers(l); });
+    loans.forEach(l=>{ ensureLoanHistoryPaymentNumbers(l); (l.history||[]).forEach(normalizePaymentFields); if(Array.isArray(l.schedule)&&l.schedule.length){ reconcileLoanScheduleWithHistory(l); syncLoanFromSchedule(l); } });
     result.loans = loans;
     }
     if ('simple' in data){
@@ -4125,11 +4318,13 @@
           time: String(h.time || '').trim(),
           tracking: String(h.tracking || '').trim(),
           method: String(h.method || '').trim(),
+          channel: String(h.channel || '').trim(),
+          sourceAccountId: h.sourceAccountId ? String(h.sourceAccountId) : null,
           note: String(h.note || '').trim()
         }));
       } else if (raw.paid){
         // old format: if paid was true, add a single placeholder entry
-        history = [{id: uid(), date: '', time: '', tracking: '', method: '', note: 'پرداخت قبلی (بدون جزئیات)'}];
+        history = [{id: uid(), date: '', time: '', tracking: '', method: '', channel:'', sourceAccountId:null, note: 'پرداخت قبلی (بدون جزئیات)'}];
       }
       return {
         id: idOf(raw),
@@ -4153,7 +4348,7 @@
       if (!raw || typeof raw !== 'object' || Array.isArray(raw)) throw new Error('invalid');
       const cat = String(raw.cat || '').trim();
       if (!cat) throw new Error(`ردیف ${toFa(i + 1)} در «${label}» عنوان ندارد`);
-      return {
+      const out={
         id: idOf(raw),
         cat,
         amount: Math.max(num(raw.amount), 0),
@@ -4168,13 +4363,20 @@
         reference: String(raw.reference || '').trim(),
         note: String(raw.note || '').trim(),
         copiedFromId: raw.copiedFromId ? String(raw.copiedFromId) : null,
+        sourceType: raw.sourceType ? String(raw.sourceType) : null,
+        sourceLoanId: raw.sourceLoanId ? String(raw.sourceLoanId) : null,
+        sourcePaymentId: raw.sourcePaymentId ? String(raw.sourcePaymentId) : null,
         createdAt: String(raw.createdAt || '').trim(),
         updatedAt: String(raw.updatedAt || '').trim(),
         icon: iconOf(raw.icon)
-      };
+      }; normalizePaymentFields(out); return out;
     });
     if ('income' in data) result.income = txn(data.income, 'درآمدها');
     if ('expenses' in data) result.expenses = txn(data.expenses, 'هزینه‌ها');
+    if(result.loans && result.expenses){
+      const bySource=new Map(result.expenses.filter(x=>x.sourceType==='installment'&&x.sourcePaymentId).map(x=>[x.sourcePaymentId,x]));
+      result.loans.forEach(l=>(l.history||[]).forEach(h=>{ const ex=bySource.get(h.id); if(ex){h.expenseId=ex.id; if(!h.expenseLinkMode)h.expenseLinkMode='linked';} }));
+    }
     return result;
   }
 
@@ -4229,6 +4431,14 @@
     return IS_GITHUB_PAGES ? `./${file}?${q}` : `${UPDATE_RAW_BASE}${file}?${q}`;
   }
   const RELEASE_HISTORY = [
+    {version:'3.10.2',released:'2026-09-17',title:'پرداخت ساختاریافته، کانال بانکی و یکپارچگی هزینه‌ها',changes:[
+      'تفکیک روش پرداخت از کانال انجام؛ اینترنت‌بانک و موبایل‌بانک به‌عنوان کانال مستقل ثبت می‌شوند.',
+      'مبلغ و شناسه هر قسط هنگام پرداخت قابل اصلاح است؛ مناسب اقساط با مبالغ متفاوت.',
+      'دکمه بالای کارت «پرداخت قسط بعدی» و دکمه هر ردیف «پرداخت این قسط» است.',
+      'پرداخت قسط در هزینه‌ها ثبت می‌شود و در صورت وجود هزینه مشابه امکان اتصال همان رکورد برای جلوگیری از دوباره‌شماری وجود دارد.',
+      'ویرایش/حذف پرداخت قسط، هزینه مرتبط و برنامه اقساط را همگام نگه می‌دارد.',
+      'Migration روش‌های قدیمی مانند اینترنت‌بانک/خودپرداز به ساختار Method + Channel و Backup Schema v3.'
+    ]},
     {version:'3.10.1',released:'2026-09-17',title:'اصلاح شناسه تاریخچه پرداخت و برنامه اقساط',changes:[
       'دفتر حساب‌های بانکی با شماره حساب، شماره کارت و شبا.',
       'روش‌های پرداخت پل، پایا، ساتنا، کارت‌به‌کارت و سایر روش‌های رایج.',
@@ -5118,7 +5328,7 @@
 
   const aboutOverlay = document.getElementById('aboutOverlay');
   document.getElementById('aboutVersion').textContent = toFa(APP_VERSION);
-  document.getElementById('aboutBuildDate').textContent = '۲ شهریور ۱۴۰۵ (شمسی) — ۲۴ اوت ۲۰۲۶ (میلادی)';
+  document.getElementById('aboutBuildDate').textContent = '۲۶ شهریور ۱۴۰۵ (شمسی) — ۱۷ سپتامبر ۲۰۲۶ (میلادی)';
   document.getElementById('btnAbout').onclick = () => aboutOverlay.classList.add('show');
   document.getElementById('btnCloseAbout').onclick = () => aboutOverlay.classList.remove('show');
   document.getElementById('btnShowWelcomeAgain').onclick = () => {
