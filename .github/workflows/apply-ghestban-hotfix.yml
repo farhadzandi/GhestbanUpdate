@@ -4,7 +4,7 @@ on:
   push:
     branches: [main]
     paths:
-      - 'ghestban-3.10.1.patch'
+      - 'ghestban-patch-ready'
 
 permissions:
   contents: write
@@ -18,10 +18,15 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Assemble verified patch
+        run: |
+          cat ghestban-3.10.1.patch.part* > /tmp/ghestban-3.10.1.patch
+          wc -c /tmp/ghestban-3.10.1.patch
+
       - name: Apply verified patch
         run: |
-          git apply --check ghestban-3.10.1.patch
-          git apply ghestban-3.10.1.patch
+          git apply --check /tmp/ghestban-3.10.1.patch
+          git apply /tmp/ghestban-3.10.1.patch
 
       - name: Verify version and hotfix markers
         run: |
@@ -31,13 +36,13 @@ jobs:
 
       - name: Remove temporary patch machinery
         run: |
-          rm ghestban-3.10.1.patch
+          rm ghestban-3.10.1.patch.part* ghestban-patch-ready
           rm .github/workflows/apply-ghestban-hotfix.yml
 
       - name: Commit corrected 3.10.1 HTML
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add index.html ghestban-3.10.1.patch .github/workflows/apply-ghestban-hotfix.yml
+          git add -A
           git commit -m "Fix: publish actual Ghestban v3.10.1 HTML"
           git push origin main
