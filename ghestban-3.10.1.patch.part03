@@ -1,0 +1,129 @@
+(!l) return;
+     const unpaid = Math.max(l.total - l.paid, 0);
+     if (unpaid <= 0) return;
+     pendingPaymentLoanId = loanId;
+-    document.getElementById('paymentModalTitle').textContent = 'ثبت پرداخت — ' + l.cat + ' (' + (l.person || '—') + ')';
++    const schedule=getLoanSchedule(l); const inst=schedule.find(x=>x.id===installmentId) || (schedule.length?schedule.find(x=>!x.paid):null);
++    pendingPaymentInstallmentId = inst ? inst.id : null;
++    document.getElementById('paymentModalTitle').textContent = 'ثبت پرداخت — ' + l.cat + ' (' + (l.person || '—') + ')' + (inst ? ' — قسط ' + toFa(inst.seq) : '');
++    const ctx=document.getElementById('pdInstallmentContext');
++    if(inst){ ctx.style.display='block'; ctx.innerHTML=`سررسید: <b class="mono">${escapeHtml(inst.dueDate||'—')}</b> · مبلغ: <b class="mono">${fmtMoney(inst.amount||l.amount)}</b> ${moneyUnit()}${inst.paymentId?` · شناسه: <b class="mono">${escapeHtml(inst.paymentId)}</b>`:''}`; }
++    else ctx.style.display='none';
+     document.getElementById('pdDate').value = l.pendingSince || todayJalaliStr();
+     document.getElementById('pdTime').value = nowTimeStr();
+     document.getElementById('pdTracking').value = '';
+@@ -3229,6 +3497,7 @@
+   function closePaymentModal(){
+     paymentOverlay.classList.remove('show');
+     pendingPaymentLoanId = null;
++    pendingPaymentInstallmentId = null;
+   }
+   document.getElementById('btnCancelPayment').onclick = closePaymentModal;
+   document.getElementById('btnConfirmPaymentDetail').onclick = () => {
+@@ -3243,7 +3512,7 @@
+       depositedAt: l.pendingSince || null
+     };
+     pushUndoSnapshot();
+-    finalizePayment(l, details);
++    if(!finalizePayment(l, details, pendingPaymentInstallmentId)){ alert('این قسط قبلاً پرداخت شده یا قابل شناسایی نیست.'); return; }
+     save();
+     closePaymentModal();
+     render();
+@@ -3373,8 +3642,9 @@
+     const unpaid = Math.max(l.total - l.paid, 0);
+     document.getElementById('rTitle').textContent = l.cat;
+     document.getElementById('rPerson').textContent = l.person || '—';
+-    document.getElementById('rAmount').textContent = fmtMoney(l.amount) + ' ' + moneyUnit();
+-    document.getElementById('rSeq').textContent = toFa(l.paid) + ' از ' + toFa(l.total);
++    const latestHist=(l.history||[]).slice().sort((a,b)=>dateTimeSortKey(b.date,b.time)-dateTimeSortKey(a.date,a.time))[0];
++    document.getElementById('rAmount').textContent = fmtMoney(latestHist && latestHist.amount ? latestHist.amount : l.amount) + ' ' + moneyUnit();
++    document.getElementById('rSeq').textContent = latestHist && latestHist.seq ? toFa(latestHist.seq) + ' از ' + toFa(l.total) : toFa(l.paid) + ' از ' + toFa(l.total);
+     document.getElementById('rRemain').textContent = toFa(unpaid) + ' قسط';
+     document.getElementById('rDate').textContent = l.lastPay;
+ 
+@@ -3416,6 +3686,9 @@
+     if (!btn) return;
+     const id = btn.dataset.id;
+     if (btn.dataset.action === 'pay') registerPayment(id);
++    if (btn.dataset.action === 'payinstallment') openPaymentModal(id, btn.dataset.instid);
++    if (btn.dataset.action === 'toggleschedule'){ historyOpen['sch_'+id]=!historyOpen['sch_'+id]; renderLoans(); }
++    if (btn.dataset.action === 'copyinstid') copyText(btn.dataset.value || '', 'شناسه پرداخت');
+     if (btn.dataset.action === 'edit'){ openRowMenu = null; openLoanModal(state.loans.find(x => x.id === id)); }
+     if (btn.dataset.action === 'duplicate'){
+       openRowMenu = null;
+@@ -3597,15 +3870,19 @@
+       'آخرین پرداخت': l.lastPay || '',
+       'سررسید بعدی': l.dueDate || '',
+       'برداشت خودکار بانک': l.autoDebit ? 'بله' : 'خیر',
+-      'توضیحات': l.notes || ''
++      'توضیحات': l.notes || '',
++      'برنامه ساختاریافته': getLoanSchedule(l).length ? 'بله' : 'خیر'
+     }));
++    const scheduleRows=[];
++    state.loans.forEach(l=>getLoanSchedule(l).forEach(x=>scheduleRows.push({'عنوان':l.cat,'شخص':l.person,'شماره قسط':x.seq,'سررسید':x.dueDate||'',[`مبلغ (${unit})`]:conv(x.amount||l.amount),'شناسه پرداخت':x.paymentId||'','وضعیت':x.paid?'پرداخت‌شده':'در انتظار','تاریخ پرداخت':x.paidAt||'','پیگیری':x.tracking||'','روش پرداخت':x.method||''})));
+     const historyRows = [];
+     state.loans.forEach(l => {
+       (l.history || []).forEach(h => {
+         historyRows.push({
+           'دسته': l.cat,
+           'شخص': l.person,
+-          'شماره قسط': h.seq,
++          'شماره پرداخت': h.paymentNo || '',
++          'شماره قسط': h.installmentSeq || h.seq || '',
+           'تاریخ': h.date || '',
+           'ساعت': h.time || '',
+           'شماره پیگیری/تراکنش': h.tracking || '',
+@@ -3825,9 +4102,13 @@
+         autoDebit: !!raw.autoDebit,
+         pendingSince: raw.pendingSince ? String(raw.pendingSince).trim() : null,
+         icon: iconOf(raw.icon),
++        schedule: Array.isArray(raw.schedule) ? raw.schedule.filter(x=>x&&typeof x==='object'&&!Array.isArray(x)).map((x,j)=>({
++          id: idOf(x), seq: Math.max(num(x.seq)||j+1,1), dueDate:String(x.dueDate||'').trim(), amount:Math.max(num(x.amount||raw.amount),0), paymentId:String(x.paymentId||x.paymentIdentifier||'').trim(), paid:!!x.paid, paidAt:String(x.paidAt||'').trim(), paidTime:String(x.paidTime||'').trim(), tracking:String(x.tracking||'').trim(), method:String(x.method||'').trim(), note:String(x.note||'').trim()
++        })) : [],
+         history: Array.isArray(raw.history) ? raw.history : []
+       };
+     });
++    loans.forEach(l=>{ if(Array.isArray(l.schedule)&&l.schedule.length) syncLoanFromSchedule(l); ensureLoanHistoryPaymentNumbers(l); });
+     result.loans = loans;
+     }
+     if ('simple' in data){
+@@ -3948,27 +4229,27 @@
+     return IS_GITHUB_PAGES ? `./${file}?${q}` : `${UPDATE_RAW_BASE}${file}?${q}`;
+   }
+   const RELEASE_HISTORY = [
+-    {version:'3.10.0',released:'2026-08-26',title:'ثبت سریع و حساب‌های بانکی',changes:['دفتر حساب‌های بانکی با شماره حساب، کارت و شبا.','روش‌های پرداخت پل، پایا، ساتنا، کارت‌به‌کارت و سایر روش‌های رایج.','ثبت مشابه امن با شناسه مستقل و هشدار رکورد تکراری.','صفحه‌بندی ۲۵/۵۰/۱۰۰ رکوردی برای درآمد و هزینه.','جستجو و فیلتر پیشرفته روی تراکنش‌ها.','بکاپ، Restore، Snapshot و GitHub Sync شامل حساب‌های بانکی و تمام فیلدهای جدید.']},
+-    {version:'3.9.2',released:'2026-08-24',title:'نسخه ساده ویندوز و بروزرسانی مستقیم',changes:[
+-      'ویندوز همچنان با یک فایل HTML مستقل و بدون نصب، Python، Node یا سرویس محلی اجرا می‌شود.',
+-      'فایل HTML در حالت آفلاین تمام امکانات اصلی مالی را حفظ می‌کند.',
+-      'هنگام اتصال اینترنت، نسخه جدید از کانال عمومی GhestbanUpdate بررسی و تغییرات آن نمایش داده می‌شود.',
+-      'در ویندوز، با تأیید کاربر یک بکاپ JSON و سپس فایل HTML نسخه جدید دانلود می‌شود.',
+-      'PWA برای موبایل حفظ شده و بروزرسانی آن از GitHub Pages انجام می‌شود.'
++    {version:'3.10.1',released:'2026-09-17',title:'اصلاح شناسه تاریخچه پرداخت و برنامه اقساط',changes:[
++      'دفتر حساب‌های بانکی با شماره حساب، شماره کارت و شبا.',
++      'روش‌های پرداخت پل، پایا، ساتنا، کارت‌به‌کارت و سایر روش‌های رایج.',
++      'ثبت مشابه امن با شناسه مستقل و هشدار رکورد تکراری.',
++      'صفحه‌بندی ۲۵/۵۰/۱۰۰ رکوردی برای درآمد و هزینه و فیلتر پیشرفته.',
++      'برنامه اقساط ساختاریافته: سررسید، مبلغ و شناسه مستقل برای هر قسط؛ قسط پرداخت‌شده سبز نمایش داده می‌شود.',
++      'ورود گروهی شناسه‌های پرداخت و ثبت پرداخت مستقیم روی هر ردیف قسط.',
++      'توضیحات اقساط چندخطی و جدا از اطلاعات ساختاریافته نمایش داده می‌شود.',
++      'Backup/Restore، Snapshot، GitHub Sync و Excel شامل برنامه اقساط و اطلاعات جدید هستند.'
+     ]},
+     {version:'3.9.1',released:'2026-08-24',title:'مرکز بروزرسانی و تاریخچه نسخه‌ها',changes:[
+       'نمایش تغییرات نسخه جدید پیش از نصب بروزرسانی.',
+       'افزودن تاریخچه بروزرسانی‌ها داخل تنظیمات برنامه.',
+-      'آماده‌سازی مسیر انتشار رسمی از GitHub Pages برای بروزرسانی PWA روی کامپیوتر.',
+-      'حفظ کامل معماری Offline-First؛ قطع اینترنت مانع استفاده از بخش‌های مالی نیست.',
+-      'بهبود پیام‌های وضعیت بروزرسانی و تفکیک حالت فایل محلی از PWA نصب‌شده.'
++      'آماده‌سازی مسیر انتشار رسمی از GitHub Pages برای بروزرسانی PWA.',
++      'حفظ کامل معماری Offline-First.'
+     ]},
+     {version:'3.9.0',released:'2026-08-24',title:'Offline Reliability & Safe Sync',changes:[
+       'پایداری Offline-First و ادامه کامل کار بدون اینترنت.',
+       'Deferred GitHub Backup و تشخیص وضعیت دسترسی واقعی به GitHub.',
+       'Snapshot بازیابی پیش از Pull و بروزرسانی.',
+-      'Push آگاه از Conflict و جلوگیری از بازنویسی ناخواسته داده Remote.',
+-      'اصلاح Undo/Redo برای درآمد و هزینه و حذف Auto-confirm قطعی پرداخت چهارروزه.'
++      'Push آگاه از Conflict و اصلاح Undo/Redo.'
+     ]}
+   ];
+ 
