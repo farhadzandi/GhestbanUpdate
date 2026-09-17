@@ -1,16 +1,16 @@
-name: Apply Ghestban 3.10.1 hotfix
+name: Publish actual Ghestban 3.10.1 HTML
 
 on:
   push:
     branches: [main]
     paths:
-      - 'ghestban-patch-ready'
+      - 'ghestban-upload-ready'
 
 permissions:
   contents: write
 
 jobs:
-  apply-hotfix:
+  publish-html:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -18,26 +18,24 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Assemble verified patch
+      - name: Rebuild index.html from verified payload
         run: |
-          cat ghestban-3.10.1.patch.part* > /tmp/ghestban-3.10.1.patch
-          wc -c /tmp/ghestban-3.10.1.patch
+          cat ghestban-3.10.1.b64.part* > /tmp/ghestban-index.b64
+          base64 -d /tmp/ghestban-index.b64 > /tmp/ghestban-index.html.gz
+          gunzip -c /tmp/ghestban-index.html.gz > index.html
 
-      - name: Apply verified patch
+      - name: Verify exact file and hotfix markers
         run: |
-          git apply --check /tmp/ghestban-3.10.1.patch
-          git apply /tmp/ghestban-3.10.1.patch
-
-      - name: Verify version and hotfix markers
-        run: |
+          echo '5e3c8f4d1f7738f0bfa92974c75d4c5f3750c2a87545476550ebbfa23f73cebb  index.html' | sha256sum -c -
           grep -F 'const APP_VERSION = "3.10.1";' index.html
           grep -F 'paymentNo: nextLoanPaymentNo(l)' index.html
           grep -F 'installmentSeq: target ? target.seq : l.paid' index.html
 
-      - name: Remove temporary patch machinery
+      - name: Remove temporary transfer files
         run: |
-          rm ghestban-3.10.1.patch.part* ghestban-patch-ready
-          rm .github/workflows/apply-ghestban-hotfix.yml
+          rm -f ghestban-3.10.1.b64.part* ghestban-upload-ready
+          rm -f ghestban-3.10.1.patch.part* ghestban-patch-ready
+          rm -f .github/workflows/apply-ghestban-hotfix.yml
 
       - name: Commit corrected 3.10.1 HTML
         run: |
