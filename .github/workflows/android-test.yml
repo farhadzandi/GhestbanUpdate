@@ -20,6 +20,10 @@ jobs:
       - run: npm install
       - run: node scripts/prepare-mobile.mjs
       - run: npx cap add android
+      - name: Set stable Android version
+        run: |
+          sed -i 's/versionCode [0-9]\\+/versionCode 310702/g' android/app/build.gradle
+          sed -i 's/versionName "[^"]*"/versionName "3.10.7-beta.2"/g' android/app/build.gradle
       - run: npx cap sync android
       - name: Build debug APK
         working-directory: android
