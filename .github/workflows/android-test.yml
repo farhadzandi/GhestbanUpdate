@@ -20,6 +20,20 @@ jobs:
       - run: npm install
       - run: node scripts/prepare-mobile.mjs
       - run: npx cap add android
+      - name: Generate branded launcher icons
+        run: |
+          python - <<'PY'
+          from PIL import Image
+          from pathlib import Path
+          src=Image.open('mobile/assets/ghestban-icon.jpg').convert('RGB')
+          sizes={'mdpi':48,'hdpi':72,'xhdpi':96,'xxhdpi':144,'xxxhdpi':192}
+          for d,s in sizes.items():
+              p=Path('android/app/src/main/res')/('mipmap-'+d); p.mkdir(parents=True,exist_ok=True)
+              im=src.resize((s,s),Image.Resampling.LANCZOS)
+              im.save(p/'ic_launcher.png')
+              im.save(p/'ic_launcher_round.png')
+              im.save(p/'ic_launcher_foreground.png')
+          PY
       - name: Set stable Android version
         run: |
           sed -i 's/versionCode [0-9]\\+/versionCode 310703/g' android/app/build.gradle
