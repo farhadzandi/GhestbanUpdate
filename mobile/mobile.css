@@ -1,0 +1,23 @@
+/* Ghestban Android mobile shell */
+:root{--mobile-nav-h:68px}
+body.gh-mobile{padding:14px 12px calc(var(--mobile-nav-h) + 22px);-webkit-tap-highlight-color:transparent}
+body.gh-mobile .wrap{max-width:720px}
+body.gh-mobile header{position:sticky;top:0;z-index:40;background:var(--paper);padding:10px 2px 12px;align-items:center}
+body.gh-mobile header h1{font-size:22px}
+body.gh-mobile header .sub{display:none}
+body.gh-mobile .stats{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+body.gh-mobile .stat{padding:11px}
+body.gh-mobile .loan{grid-template-columns:1fr;padding:12px}
+body.gh-mobile .loan .btns{flex-direction:row;flex-wrap:wrap}
+body.gh-mobile .tabs{overflow-x:auto;flex-wrap:nowrap;scrollbar-width:none}
+body.gh-mobile .tab{white-space:nowrap}
+.gh-bottom-nav{position:fixed;z-index:100;bottom:0;left:0;right:0;height:var(--mobile-nav-h);display:grid;grid-template-columns:repeat(5,1fr);background:var(--card);border-top:1px solid var(--paper-line);padding:6px max(6px,env(safe-area-inset-right)) calc(6px + env(safe-area-inset-bottom)) max(6px,env(safe-area-inset-left));box-shadow:0 -4px 18px rgba(0,0,0,.08)}
+.gh-bottom-nav button{border:0;background:transparent;padding:4px 2px;font-size:11px;display:flex;flex-direction:column;align-items:center;gap:2px}
+.gh-bottom-nav .ico{font-size:19px;line-height:1}
+.gh-bottom-nav .add{width:42px;height:42px;border-radius:50%;background:var(--seal);color:#fff;font-size:24px;margin-top:-16px}
+.gh-view-banner{position:sticky;top:58px;z-index:35;margin:0 0 10px;padding:8px 10px;border:1px solid var(--brass);background:var(--card);border-radius:10px;font-size:12px;display:flex;justify-content:space-between;align-items:center;gap:8px}
+.gh-lock{position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,.48);display:flex;align-items:center;justify-content:center;padding:22px}
+.gh-lock-card{width:min(360px,100%);background:var(--card);border:1px solid var(--paper-line);border-radius:16px;padding:20px;text-align:center;box-shadow:0 18px 50px rgba(0,0,0,.3)}
+.gh-lock-card input{width:100%;padding:12px;margin:12px 0;border:1px solid var(--paper-line);border-radius:10px;background:var(--paper);color:var(--ink);text-align:center;font-size:18px}
+.gh-lock-actions{display:flex;gap:8px}.gh-lock-actions button{flex:1}
+@media(min-width:760px){.gh-bottom-nav{left:50%;right:auto;transform:translateX(-50%);width:720px;border-left:1px solid var(--paper-line);border-right:1px solid var(--paper-line)}}
