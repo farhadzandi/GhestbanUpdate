@@ -38,3 +38,11 @@ body.gh-mobile .overlay{align-items:flex-end;padding:0}
 
 /* beta.2 installment mobile cards */
 @media(max-width:640px){.gh-mobile-table thead{display:none}.gh-mobile-table,.gh-mobile-table tbody,.gh-mobile-table tr,.gh-mobile-table td{display:block;width:100%;box-sizing:border-box}.gh-mobile-table{border:0!important;background:transparent!important}.gh-mobile-table .gh-mobile-row{margin:10px 0;padding:12px 14px;background:#fff;border:1px solid #e2e9e7;border-radius:16px;box-shadow:0 2px 8px #0000000a}.gh-mobile-table .gh-mobile-row td{display:flex;justify-content:space-between;gap:12px;padding:7px 0!important;border:0!important;text-align:left}.gh-mobile-table .gh-mobile-row td::before{content:attr(data-label);color:#687873;font-size:12px;text-align:right}.gh-mobile-table .gh-mobile-row td:last-child{justify-content:flex-start;flex-wrap:wrap;border-top:1px solid #edf1f0!important;margin-top:6px;padding-top:10px!important}}
+
+/* beta.2 hotfix: legacy dialogs must stay fully above app bottom navigation */
+body.gh-mobile .overlay{z-index:700!important;align-items:flex-end!important;padding:12px 10px calc(var(--gh-nav) + var(--gh-safe-bottom) + 12px)!important;box-sizing:border-box!important}
+body.gh-mobile .overlay .modal{margin:0 auto!important;max-height:calc(100dvh - env(safe-area-inset-top) - var(--gh-nav) - var(--gh-safe-bottom) - 36px)!important;overflow:auto!important;border-radius:22px!important}
+body.gh-mobile .gh-sheet{bottom:calc(var(--gh-nav) + var(--gh-safe-bottom))!important;z-index:800!important}
+body.gh-mobile .gh-sheet-card{padding-bottom:18px!important}
+body.gh-mobile .gh-lock{bottom:calc(var(--gh-nav) + var(--gh-safe-bottom))!important;z-index:1000!important}
+body.gh-mobile .gh-lock-card{padding-bottom:22px!important}
