@@ -52,3 +52,6 @@ body.gh-mobile #connectivityPill{cursor:pointer;touch-action:manipulation}body.g
 body.gh-mobile .toast{z-index:2600!important;bottom:calc(var(--gh-nav) + var(--gh-safe-bottom) + 18px)!important;max-width:calc(100vw - 32px);text-align:center}
 body.gh-mobile .sync-panel{z-index:2550!important;bottom:calc(var(--gh-nav) + var(--gh-safe-bottom) + 18px)!important}
 body.gh-mobile .gh-settings-page{z-index:2400!important}
+
+/* compact installment schedules */
+body.gh-mobile .installments-block .gh-inst-extra{display:none!important}body.gh-mobile .installments-block.gh-inst-open .gh-inst-extra{display:grid!important}.gh-inst-expand{width:100%;border:0;border-top:1px solid var(--paper-line);background:#f4faf8;color:#087c6c;padding:11px;font:inherit;font-weight:800}
