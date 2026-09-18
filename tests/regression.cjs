@@ -5,34 +5,35 @@ const {chromium}=require('playwright');
 const source=fs.readFileSync(path.join(__dirname,'../index.html'),'utf8');
 new Function(source.match(/<script>\s*([\s\S]*?)<\/script>/)[1]);
 (async()=>{
- const browser=await chromium.launch({headless:true,...(process.env.CHROMIUM_PATH?{executablePath:process.env.CHROMIUM_PATH,args:['--no-sandbox','--disable-dev-shm-usage']}: {})});
+ let launch={};if(process.env.CHROMIUM_PATH)launch={executablePath:process.env.CHROMIUM_PATH,args:['--no-sandbox','--disable-dev-shm-usage']};
+ const browser=await chromium.launch({headless:true,...launch});
  const page=await browser.newPage(); const errors=[];page.on('pageerror',e=>errors.push(e.message));page.on('dialog',d=>d.accept());
  await page.route('https://**',r=>r.abort());
- await page.goto('file://'+path.join(__dirname,'../index.html'));
  const fixture={loans:[{id:'legacy',cat:'وام آزمایشی',person:'آزمایش',amount:100,total:144,paid:119,lastPay:'۱۴۰۵/۰۵/۱۰',dueDate:'۱۴۰۵/۰۶/۱۰',history:[]}],simple:[{id:'simple',cat:'تعهد آزمایشی',person:'آزمایش',amount:70,history:[{id:'s1',date:'۱۴۰۵/۰۵/۰۱'}]}],income:[],expenses:[],bankAccounts:[]};
- await page.evaluate(f=>{localStorage.setItem('installments-welcome-v1','1');localStorage.setItem('installments-ledger-v1',JSON.stringify(f));},fixture);
- await page.reload();
- const state=()=>page.evaluate(()=>JSON.parse(localStorage.getItem('installments-ledger-v1')));
+ await page.addInitScript(f=>{localStorage.setItem('installments-welcome-v1','1');localStorage.setItem('installments-ledger-v1',JSON.stringify(f));},fixture);
+ await page.goto('file://'+path.join(__dirname,'../index.html'));await page.waitForFunction(()=>document.documentElement.dataset.storageReady==='1');
+ const state=()=>page.evaluate(()=>new Promise((resolve,reject)=>{const q=indexedDB.open('ghestban-durable-v1');q.onsuccess=()=>{const r=q.result.transaction('records').objectStore('records').get('active');r.onsuccess=()=>resolve(r.result.ledger);r.onerror=()=>reject(r.error)};q.onerror=()=>reject(q.error)}));
+ const settled=()=>page.waitForTimeout(80);
  let st=await state();assert.equal(st.loans[0].paid,119);assert.equal(st.loans[0].schedule.length,144);assert.equal(st.loans[0].history.length,0);assert.equal(st.loans[0].schedule[0].paidAt,'');assert.equal(st.loans[0].schedule[0].dueDate,'');assert.equal(st.simple[0].history[0].amount,70);
  assert.equal(await page.locator('.inst-grid.compact .inst-cell').count(),144);
  const first=JSON.stringify(st);await page.reload();assert.equal(JSON.stringify(await state()),first);console.log('PASS legacy migration and idempotence');
- await page.locator('.inst-cell').nth(119).click();await page.locator('#installmentDetail [data-pay]').click();await page.locator('#pdAmount').fill('۱۵۰');await page.locator('#btnConfirmPaymentDetail').click();
+ await page.locator('.inst-cell').nth(119).click();await page.locator('#installmentDetail [data-pay]').click();await page.locator('#pdAmount').fill('۱۵۰');await page.locator('#btnConfirmPaymentDetail').click();await settled();
  st=await state();assert.equal(st.loans[0].paid,120);assert.equal(st.loans[0].history[0].installmentSeq,120);assert.equal(st.loans[0].history[0].paymentNo,1);assert.equal(st.expenses.length,1);assert.equal(st.expenses[0].amount,150);assert.equal(st.loans[0].schedule[119].amount,150);assert.match(await page.locator('#statRemaining').textContent(),/۲[٬,]?۴۰۰/);console.log('PASS real UI payment and mixed amounts');
- await page.locator('#btnUndoPay').click();st=await state();assert.equal(st.loans[0].paid,119);assert.equal(st.loans[0].dueDate,'۱۴۰۵/۰۶/۱۰');assert.equal(st.expenses.length,0);assert.equal(st.loans[0].lastPay,'۱۴۰۵/۰۵/۱۰');console.log('PASS receipt undo restores due date and linked expense');
- await page.locator('.inst-cell').nth(125).click();await page.locator('#installmentDetail [data-pay]').click();await page.locator('#btnConfirmPaymentDetail').click();st=await state();assert.equal(st.loans[0].history[0].installmentSeq,126);assert.equal(st.loans[0].history[0].paymentNo,2);assert.equal(st.loans[0].dueDate,'۱۴۰۵/۰۶/۱۰');await page.locator('#btnCloseReceipt').click();
- await page.locator('.inst-cell').nth(125).click();await page.locator('#installmentDetail [data-edit]').click();await page.locator('#ehAmount').fill('۲۰۰');await page.locator('#ehPaymentIdentifier').fill('TEST-ID');await page.locator('#btnSaveEditHist').click();st=await state();assert.equal(st.loans[0].schedule[125].amount,200);assert.equal(st.expenses[0].amount,200);assert.equal(st.loans[0].schedule[125].paymentId,'TEST-ID');console.log('PASS out-of-order payment, monotonic numbers and history editing');
- await page.locator('.inst-cell').nth(125).click();await page.locator('#installmentDetail [data-edit]').click();await page.locator('#btnDeleteHistEntry').click();st=await state();assert.equal(st.loans[0].paid,119);assert.equal(st.expenses.length,0);console.log('PASS history deletion');
+ await page.locator('#btnUndoPay').click();await settled();st=await state();assert.equal(st.loans[0].paid,119);assert.equal(st.loans[0].dueDate,'۱۴۰۵/۰۶/۱۰');assert.equal(st.expenses.length,0);assert.equal(st.loans[0].lastPay,'۱۴۰۵/۰۵/۱۰');console.log('PASS receipt undo restores due date and linked expense');
+ await page.locator('.inst-cell').nth(125).click();await page.locator('#installmentDetail [data-pay]').click();await page.locator('#btnConfirmPaymentDetail').click();await settled();st=await state();assert.equal(st.loans[0].history[0].installmentSeq,126);assert.equal(st.loans[0].history[0].paymentNo,2);assert.equal(st.loans[0].dueDate,'۱۴۰۵/۰۶/۱۰');await page.locator('#btnCloseReceipt').click();
+ await page.locator('.inst-cell').nth(125).click();await page.locator('#installmentDetail [data-edit]').click();await page.locator('#ehAmount').fill('۲۰۰');await page.locator('#ehPaymentIdentifier').fill('TEST-ID');await page.locator('#btnSaveEditHist').click();await settled();st=await state();assert.equal(st.loans[0].schedule[125].amount,200);assert.equal(st.expenses[0].amount,200);assert.equal(st.loans[0].schedule[125].paymentId,'TEST-ID');console.log('PASS out-of-order payment, monotonic numbers and history editing');
+ await page.locator('.inst-cell').nth(125).click();await page.locator('#installmentDetail [data-edit]').click();await page.locator('#btnDeleteHistEntry').click();await settled();st=await state();assert.equal(st.loans[0].paid,119);assert.equal(st.expenses.length,0);console.log('PASS history deletion');
  // Expose closure only in test memory, never in shipped HTML.
- const instrumented=source.replace('  updateUndoRedoButtons();\n\n  const beforeMigration=', '  window.__test={getState:()=>state,setState:x=>state=x,normalizeLedger,migrateLoan,finalizePayment,removeLoanPaymentById,sanitizeImportedState,applyRemotePayload,buildBackupPayload,loanTotals,collectAllFinancialEntries,save,render};\n  updateUndoRedoButtons();\n\n  const beforeMigration=');
+ const instrumented=source.replace('  updateUndoRedoButtons();\n\n  normalizeLedger(state);', '  window.__test={getState:()=>state,setState:x=>state=x,normalizeLedger,migrateLoan,finalizePayment,removeLoanPaymentById,sanitizeImportedState,applyRemotePayload,buildBackupPayload,loanTotals,collectAllFinancialEntries,save,render};\n  updateUndoRedoButtons();\n\n  normalizeLedger(state);');
  await page.route('http://ghestban.test/**',r=>r.fulfill({contentType:'text/html',body:instrumented}));await page.goto('http://ghestban.test/');
- const result=await page.evaluate(f=>{
+ const result=await page.evaluate(async f=>{
  const t=__test;t.setState(structuredClone(f));t.normalizeLedger(t.getState());const l=t.getState().loans[0];const target=l.schedule[119];
  const details={date:'۱۴۰۵/۰۶/۱۰',amount:123,time:'۱۲:۰۰'};
  const h=t.finalizePayment(l,details,target.id); const dup=t.finalizePayment(l,details,target.id); const invalid=t.finalizePayment(l,details,'MISSING');
  const totals=t.loanTotals(l);const backup=t.buildBackupPayload(['loans','simple','income','expenses','bankAccounts']);
  const restored=t.sanitizeImportedState(JSON.parse(JSON.stringify(backup)));
  const simple=t.getState().simple[0];simple.amount=900;const oldAmount=t.collectAllFinancialEntries().find(x=>x.cat.includes('(تعهد)')).amount;
- const before=JSON.stringify(t.getState().loans);t.applyRemotePayload({simple:restored.simple},true,false);const partialPreserved=JSON.stringify(t.getState().loans)===before;
+ const before=JSON.stringify(t.getState().loans);await t.applyRemotePayload({simple:restored.simple},true,false);const partialPreserved=JSON.stringify(t.getState().loans)===before;
  t.setState(restored);const rl=restored.loans[0];t.removeLoanPaymentById(rl,h.id);
  return {dup,invalid,totals,restoredPaid:rl.paid,restoredDue:rl.dueDate,oldAmount,partialPreserved,expenseCount:restored.expenses.length,counter:rl.paymentCounter};
  },fixture);

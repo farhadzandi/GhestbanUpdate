@@ -1571,10 +1571,11 @@
 </div>
 
 <script>
-(function(){
+(async function(){
   "use strict";
   const STORE_KEY = "installments-ledger-v1";
-  const APP_VERSION = "3.10.5";
+  const CARDS_KEY = "installments-cards-blob-v1";
+  const APP_VERSION = "3.10.6";
   const APP_SCHEMA_VERSION = 4;
   const SYNC_META_KEY = "installments-sync-meta-v1";
   const RECOVERY_KEY = "installments-recovery-snapshot-v1";
@@ -1876,8 +1877,54 @@
     if (el) makeFaInput(el, ' /');
   });
 
+  // A single IndexedDB record commits ledger + encrypted cards atomically.
+  // Legacy localStorage remains untouched until its full archival transaction commits.
+  let dataDb=null, storageFault=false, storageQueue=Promise.resolve(), recoveryCache=null;
+  let cardsCache=null, bootRecord=null, loadFault=false;
+  function storageWarning(message){
+    let box=document.getElementById('storageWarning');
+    if(!box){box=document.createElement('div');box.id='storageWarning';box.setAttribute('role','alert');box.style.cssText='position:sticky;top:0;z-index:9999;padding:14px;background:#fff3cd;color:#652218;border:2px solid #a5352a;white-space:pre-wrap';document.body.prepend(box);}
+    box.textContent=message;
+  }
+  function dbRead(key){return new Promise((resolve,reject)=>{
+    const tx=dataDb.transaction('records','readonly'),q=tx.objectStore('records').get(key);
+    q.onsuccess=()=>resolve(q.result);q.onerror=()=>reject(q.error);
+  });}
+  function dbWrite(entries){return new Promise((resolve,reject)=>{
+    const tx=dataDb.transaction('records','readwrite'),store=tx.objectStore('records');
+    for(const [key,value] of Object.entries(entries))store.put(value,key);
+    tx.oncomplete=()=>resolve(true);tx.onabort=()=>reject(tx.error||new Error('ذخیره‌سازی لغو شد'));tx.onerror=()=>{};
+  });}
+  function queueStorage(work){
+    const next=storageQueue.then(work);storageQueue=next.catch(()=>{});return next;
+  }
+  async function initDataStorage(){
+    try{
+      dataDb=await new Promise((resolve,reject)=>{
+        const request=indexedDB.open('ghestban-durable-v1',1);
+        request.onupgradeneeded=()=>request.result.createObjectStore('records');
+        request.onsuccess=()=>resolve(request.result);request.onerror=()=>reject(request.error);
+        request.onblocked=()=>reject(new Error('پایگاه داده در پنجره دیگری باز است'));
+      });
+      bootRecord=await dbRead('active');recoveryCache=await dbRead('recovery')||null;
+      if(!bootRecord){
+        const legacy={};
+        for(const key of [STORE_KEY,CARDS_KEY,'installments-undo-v1',RECOVERY_KEY,'installments-before-v4']){
+          const raw=localStorage.getItem(key);if(raw!=null)legacy[key]=raw;
+        }
+        // Keep the first complete archive permanently; never replace it with empty data.
+        if(Object.keys(legacy).length && !await dbRead('legacy-localStorage'))await dbWrite({'legacy-localStorage':legacy});
+        if(!recoveryCache && legacy[RECOVERY_KEY]){try{recoveryCache=JSON.parse(legacy[RECOVERY_KEY]);await dbWrite({recovery:recoveryCache});}catch(e){}}
+      }
+    }catch(e){
+      storageFault=true;dataDb=null;
+      storageWarning('دسترسی به ذخیره‌سازی پایدار ممکن نشد. داده‌های موجود پاک نشده‌اند؛ برای جلوگیری از جایگزینی اطلاعات، ذخیره و Push متوقف است. از اطلاعات قابل مشاهده خروجی JSON بگیرید.');
+    }
+  }
+  await initDataStorage();
   // ---- State ----
-  let state = load();
+  let state = bootRecord ? bootRecord.ledger : load();
+  cardsCache=bootRecord ? bootRecord.cards : (()=>{try{return JSON.parse(localStorage.getItem(CARDS_KEY)||'null');}catch(e){return null;}})();
   if (!Array.isArray(state.income)) state.income = [];
   if (!Array.isArray(state.expenses)) state.expenses = [];
   if (!Array.isArray(state.bankAccounts)) state.bankAccounts = [];
@@ -1895,7 +1942,9 @@
     return {undoStack: [], redoStack: []};
   }
   function saveUndoStacks(){
-    try{ localStorage.setItem(UNDO_KEY, JSON.stringify({undoStack, redoStack})); }catch(e){}
+    // Undo is session-only and bounded; its legacy persisted copy is archived above.
+    while(undoStack.length>1 && undoStack.reduce((n,x)=>n+x.length,0)>1000000)undoStack.shift();
+    while(redoStack.length>1 && redoStack.reduce((n,x)=>n+x.length,0)>1000000)redoStack.shift();
   }
   function undoSnapshot(){ return {loans:state.loans, simple:state.simple, income:state.income, expenses:state.expenses, bankAccounts:state.bankAccounts}; }
   function restoreUndoSnapshot(x){
@@ -1940,15 +1989,29 @@
   function load(){
     try{
       const raw = localStorage.getItem(STORE_KEY);
-      if(raw) return JSON.parse(raw);
-    }catch(e){}
+      if(raw){const value=JSON.parse(raw);if(!value||!Array.isArray(value.loans)||!Array.isArray(value.simple))throw new Error('invalid');return value;}
+    }catch(e){loadFault=true;storageFault=true;storageWarning('خواندن اطلاعات ذخیره‌شده ناموفق بود. اصل اطلاعات حفظ شده است؛ ذخیره و Push متوقف شد.');}
     return {loans:[], simple:[], income:[], expenses:[], bankAccounts:[]};
   }
 
-  function save(markDirty = true){
-    localStorage.setItem(STORE_KEY, JSON.stringify(state));
-    if (markDirty) markLocalDirty();
-    document.getElementById('lastSaved').textContent = 'آخرین ذخیره: ' + todayJalaliStr();
+  async function commitData(ledger,cards){
+    if(!dataDb || loadFault)throw new Error('ذخیره‌سازی پایدار در دسترس نیست.');
+    const record=JSON.parse(JSON.stringify({ledger,cards,version:APP_VERSION,updatedAt:new Date().toISOString()}));
+    await queueStorage(()=>dbWrite({active:record}));
+    storageFault=false;
+    const warning=document.getElementById('storageWarning');if(warning)warning.remove();
+  }
+  async function save(markDirty = true){
+    try{
+      await commitData(state,cardsCache);
+      if(markDirty)markLocalDirty();
+      document.getElementById('lastSaved').textContent='آخرین ذخیره: '+todayJalaliStr();
+      return true;
+    }catch(e){
+      storageFault=true;
+      storageWarning('ذخیره اطلاعات انجام نشد. اطلاعات فعلی در این صفحه باقی مانده‌اند؛ صفحه را نبندید و خروجی JSON بگیرید. ارسال به GitHub تا رفع خطا متوقف است.');
+      return false;
+    }
   }
   function uid(){ try{ if(crypto && crypto.randomUUID) return crypto.randomUUID(); }catch(e){} return 'id_' + Math.random().toString(36).slice(2,10) + Date.now().toString(36); }
 
@@ -1987,7 +2050,7 @@
     (state.simple||[]).forEach(x=>(x.history||[]).forEach(h=>{if(normalizePaymentFields(h))changed=true;}));
     (state.income||[]).forEach(t=>{if(normalizePaymentFields(t))changed=true;});
     (state.expenses||[]).forEach(t=>{if(normalizePaymentFields(t))changed=true;});
-    if(changed){ try{ localStorage.setItem(STORE_KEY,JSON.stringify(state)); }catch(e){} }
+    // Persist once after complete initialization; never interrupt rendering for quota errors.
   })();
 
   let activeTab = 'همه';
@@ -4045,25 +4108,25 @@ ${fmtMoney(ex.amount)} ${moneyUnit()} — ${ex.date}
     }
     return data;
   }
-  function createRecoverySnapshot(reason){
+  async function createRecoverySnapshot(reason){
     try{
-      const snapshot = {reason:reason||'manual', createdAt:new Date().toISOString(), appVersion:APP_VERSION, payload:buildBackupPayload(['loans','simple','income','expenses','bankAccounts','cards'])};
-      localStorage.setItem(RECOVERY_KEY, JSON.stringify(snapshot));
-      updateRecoveryStatusLine();
-      return true;
-    }catch(e){ return false; }
+      const snapshot=JSON.parse(JSON.stringify({reason:reason||'manual',createdAt:new Date().toISOString(),appVersion:APP_VERSION,payload:buildBackupPayload(['loans','simple','income','expenses','bankAccounts','cards'])}));
+      if(!dataDb)return false;
+      await queueStorage(()=>dbWrite({recovery:snapshot}));
+      recoveryCache=snapshot;updateRecoveryStatusLine();return true;
+    }catch(e){return false;}
   }
-  function loadRecoverySnapshot(){ try{ return JSON.parse(localStorage.getItem(RECOVERY_KEY)||'null'); }catch(e){ return null; } }
+  function loadRecoverySnapshot(){return recoveryCache;}
   function updateRecoveryStatusLine(){
     const el=document.getElementById('recoveryStatusLine'); if(!el) return;
     const r=loadRecoverySnapshot();
     el.textContent = r ? `آخرین Snapshot بازیابی: ${new Date(r.createdAt).toLocaleString('fa-IR')} — ${r.reason||''}` : 'هنوز Snapshot بازیابی ساخته نشده است.';
   }
-  document.getElementById('btnRestoreRecovery').onclick = () => {
+  document.getElementById('btnRestoreRecovery').onclick = async () => {
     const r=loadRecoverySnapshot();
     if(!r || !r.payload){ alert('Snapshot امنی برای بازیابی وجود ندارد.'); return; }
     if(!confirm('اطلاعات موجود با Snapshot بازیابی قبلی جایگزین/ادغام شود؟ قبل از ادامه از وضعیت فعلی خروجی بگیرید اگر لازم است.')) return;
-    const summary=applyRemotePayload(r.payload, true, false);
+    const summary=await applyRemotePayload(r.payload, true, false);
     if(summary) toast('Snapshot بازیابی اعمال شد');
   };
   updateRecoveryStatusLine();
@@ -4433,7 +4496,7 @@ ${fmtMoney(ex.amount)} ${moneyUnit()} — ${ex.date}
 
   // Shared by local-file import and GitHub pull: merges only the parts
   // present in the payload into state, leaving the rest untouched.
-  function applyRemotePayload(data, skipConfirm, fromRemote){
+  async function applyRemotePayload(data, skipConfirm, fromRemote){
     if (!data || typeof data !== 'object' || Array.isArray(data)){ alert('داده معتبر نیست.'); return null; }
     const hasStateFields = ['loans','simple','income','expenses','bankAccounts'].some(k => k in data);
     let clean = {};
@@ -4456,12 +4519,18 @@ ${fmtMoney(ex.amount)} ${moneyUnit()} — ${ex.date}
       msg += '\nبقیه‌ی بخش‌ها دست‌نخورده می‌مانند. ادامه؟';
       if (!confirm(msg)) return null;
     }
-    pushUndoSnapshot();
-    includedParts.forEach(k => { state[k] = clean[k]; });
-    if (hasCards){
-      restoreCardsBlobFromPayload(data.cardsBlob, !fromRemote);
-    }
-    save(!fromRemote); render();
+    const candidate=Object.assign({},state,clean);
+    const nextCards=hasCards?data.cardsBlob:cardsCache;
+    const previousUndo=JSON.stringify(undoSnapshot());
+    // Do not touch live state, cards, undo or sync metadata before the transaction commits.
+    try{await commitData(candidate,nextCards);}
+    catch(e){throw new Error('ذخیره داده دریافتی ناموفق بود؛ اطلاعات و کارت‌های قبلی تغییر نکردند. '+(e.message||''));}
+    undoStack.push(previousUndo);redoStack=[];if(undoStack.length>MAX_UNDO)undoStack.shift();saveUndoStacks();updateUndoRedoButtons();
+    state=candidate;
+    if(hasCards){cardsCache=nextCards;refreshRestoredCards();}
+    if(!fromRemote)markLocalDirty();
+    document.getElementById('lastSaved').textContent='آخرین ذخیره: '+todayJalaliStr();
+    render();
     const summary = (includedNames ? includedNames + (hasCards ? ' و کارت‌های بانکی' : '') : (hasCards ? 'کارت‌های بانکی' : ''));
     return summary;
   }
@@ -4481,6 +4550,15 @@ ${fmtMoney(ex.amount)} ${moneyUnit()} — ${ex.date}
     return IS_GITHUB_PAGES ? `./${file}?${q}` : `${UPDATE_RAW_BASE}${file}?${q}`;
   }
   const RELEASE_HISTORY = [
+    {version:'3.10.6',build:3106,schemaVersion:4,released:'2026-09-18',title:'رفع خالی‌شدن جدول و خطای ظرفیت Pull',notes:'انتقال امن داده‌ها به IndexedDB، حفظ آرشیو اطلاعات قدیمی و جلوگیری از جایگزینی ناقص داده هنگام Pull.',changes:[
+      'رفع خالی ماندن جدول اقساط وقتی ظرفیت localStorage پر شده است.',
+      'انتقال خودکار دفتر اقساط و کارت‌های رمزنگاری‌شده به IndexedDB با ظرفیت و پایداری بیشتر.',
+      'نگهداری اولین آرشیو کامل از داده‌های قدیمی پیش از آزادکردن فضای localStorage.',
+      'ذخیره اتمی دفتر اقساط و کارت‌ها؛ Pull ناموفق داده فعلی را تغییر نمی‌دهد.',
+      'ساخت Snapshot بازیابی پایدار پیش از Pull و توقف عملیات اگر Snapshot ساخته نشود.',
+      'توقف Push هنگام خطای خواندن یا ذخیره‌سازی برای جلوگیری از جایگزینی بکاپ سالم.',
+      'محدودکردن Undo به نشست جاری برای جلوگیری از چند برابر شدن مصرف فضا.'
+    ]},
     {"version": "3.10.5", "build": 3105, "schemaVersion": 4, "released": "2026-09-17", "title": "اصلاح پرداخت‌های قدیمی و نمای فشرده اقساط", "notes": "حفظ سوابق قدیمی، ماتریس شماره‌دار برای وام‌های طولانی و هماهنگی پرداخت، سررسید و هزینه مرتبط.", "changes": ["تبدیل خودکار اقساط قدیمی با حفظ تعداد پرداخت‌ها؛ بدون ساخت تراکنش و تاریخ پرداخت فرضی.", "نمای فشرده شماره‌دار برای بیش از ۲۴ قسط، همراه جزئیات و ثبت یا ویرایش پرداخت هر قسط.", "حفظ شماره مستقل و افزایشی پرداخت و جلوگیری از ثبت دوباره روی قسط پرداخت‌شده.", "هماهنگی حذف و بازگردانی پرداخت با سررسید، تاریخچه و هزینه مرتبط.", "محاسبه جمع مانده و پرداخت‌شده از مبالغ مستقل اقساط و اصلاح پیش‌بینی ماهانه.", "نگهداری مبلغ هر پرداخت تعهدات؛ مبالغ بازیابی‌شده از داده قدیمی به‌عنوان برآورد مشخص می‌شوند.", "تبدیل یکسان داده‌های قدیمی در شروع برنامه، ورود JSON و دریافت بکاپ GitHub؛ نسخه بازیابی محلی پیش از تبدیل.", "حذف نمایش محاسبه نامعتبر سود؛ نمایش نرخ ثبت‌شده و نیاز به اطلاعات قرارداد.", "خروجی Excel شامل برنامه اقساط، مبلغ تاریخچه و پرداخت تعهدات؛ بهبود چیدمان موبایل.", "شروع نصب جدید با دفتر خالی؛ اطلاعات ذخیره‌شده کاربران حفظ می‌شود."]},
     {version:'3.10.4',released:'2026-09-17',title:'تاریخچه بکاپ و سطل زباله کارت‌ها',changes:[
       'نمایش ۱۵ نسخه اخیر بکاپ GitHub از داخل برنامه و امکان بازیابی فقط کارت‌ها از هر نسخه.',
@@ -4632,6 +4710,8 @@ ${fmtMoney(ex.amount)} ${moneyUnit()} — ${ex.date}
 
   async function githubPush(options){
     options=options||{}; const automatic=!!options.automatic;
+    await storageQueue;
+    if(storageFault || loadFault){if(!automatic)alert('ذخیره محلی ناموفق بوده است؛ برای حفاظت از بکاپ، Push متوقف شد.');return false;}
     const cfg = loadGithubConfig();
     if (!cfg.repo || !cfg.token){ if(!automatic) alert('اول در بخش «سینک با گیت‌هاب»، ریپو و توکن را ذخیره کنید.'); return false; }
     if(!navigator.onLine){ if(!automatic) syncPanelShowResult(false,'حالت آفلاین','اطلاعات محلی ذخیره شده‌اند؛ پس از بازگشت اینترنت دوباره تلاش کنید.'); return false; }
@@ -4651,7 +4731,9 @@ ${fmtMoney(ex.amount)} ${moneyUnit()} — ${ex.date}
         if(automatic){ return false; }
         const ok=confirm('نسخه موجود روی GitHub از آخرین وضعیت شناخته‌شده این دستگاه تغییر کرده است. برای جلوگیری از بازنویسی ناخواسته، بهتر است ابتدا Pull/بررسی کنید.\n\nبا این حال می‌خواهید نسخه محلی روی GitHub نوشته شود؟');
         if(!ok){ syncPanelShowResult(false,'Push متوقف شد','نسخه راه‌دور تغییر کرده است؛ ابتدا Pull/بررسی کنید.'); return false; }
-        createRecoverySnapshot('قبل از Push روی نسخه راه‌دور متفاوت');
+        if(!await createRecoverySnapshot('قبل از Push روی نسخه راه‌دور متفاوت')){
+          syncPanelShowResult(false,'Push متوقف شد','ساخت Snapshot بازیابی ناموفق بود. ابتدا خروجی JSON بگیرید.');return false;
+        }
       }
       const putBody={message:`بک‌آپ قسط‌بان ${APP_VERSION} — ${todayFullDateLine()}`,content:utf8ToBase64(contentStr),branch:cfg.branch}; if(sha) putBody.sha=sha;
       const putRes=await fetchWithTimeout(apiUrl,{method:'PUT',headers:{Authorization:`Bearer ${cfg.token}`,Accept:'application/vnd.github+json','Content-Type':'application/json'},body:JSON.stringify(putBody)},12000);
@@ -4675,16 +4757,17 @@ ${fmtMoney(ex.amount)} ${moneyUnit()} — ${ex.date}
     if(!navigator.onLine){ syncPanelShowResult(false,'حالت آفلاین','Pull انجام نشد؛ اطلاعات محلی دست‌نخورده است.'); return; }
     const pendingBefore=loadSyncMeta().pendingChanges;
     if(pendingBefore>0){
-      createRecoverySnapshot('قبل از Pull با تغییرات محلی');
+      const backedUp=await createRecoverySnapshot('قبل از Pull با تغییرات محلی');
+      if(!backedUp){syncPanelShowResult(false,'دریافت متوقف شد','ساخت نسخه بازیابی ناموفق بود. ابتدا خروجی JSON بگیرید.');return;}
       if(!confirm(`${toFa(pendingBefore)} تغییر محلی هنوز Push نشده است. یک Snapshot بازیابی محلی ساخته شد.\nادامه Pull ممکن است بخش‌های مشترک را جایگزین کند. ادامه؟`)) return;
-    } else createRecoverySnapshot('قبل از Pull');
+    } else if(!await createRecoverySnapshot('قبل از Pull')){syncPanelShowResult(false,'دریافت متوقف شد','ساخت نسخه بازیابی ناموفق بود؛ اطلاعات قبلی حفظ شده است.');return;}
     const apiUrl=githubApiBase(cfg); syncPanelShowLoading('در حال دریافت از GitHub...');
     try{
       const res=await fetchWithTimeout(`${apiUrl}?ref=${encodeURIComponent(cfg.branch)}`,{headers:{Authorization:`Bearer ${cfg.token}`,Accept:'application/vnd.github+json'},cache:'no-store'},10000);
       if(res.status===404){ syncPanelShowResult(false,'فایلی پیدا نشد','هنوز بک‌آپی روی GitHub وجود ندارد.'); return; }
       if(!res.ok){ const ej=await res.json().catch(()=>({})); throw new Error(res.status+' '+(ej.message||'')); }
       const json=await res.json(); const data=JSON.parse(base64ToUtf8(json.content));
-      const summary=applyRemotePayload(data, false, true); if(!summary){ syncPanelShowResult(false,'لغو شد','داده‌ای اعمال نشد.'); return; }
+      const summary=await applyRemotePayload(data, false, true); if(!summary){ syncPanelShowResult(false,'لغو شد','داده‌ای اعمال نشد.'); return; }
       const cfg2=loadGithubConfig(); cfg2.lastSync=todayFullDateLine(); cfg2.lastRemoteSha=json.sha; cfg2.lastSyncDirection='pull'; saveGithubConfig(cfg2);
       if(pendingBefore===0) clearLocalDirty(); else { const m=loadSyncMeta(); m.conflict=false; saveSyncMeta(m); }
       updateGithubStatusLine(); connectivityState='github'; updateConnectivityPill();
@@ -4721,15 +4804,15 @@ ${fmtMoney(ex.amount)} ${moneyUnit()} — ${ex.date}
   async function restoreCardsFromHistory(commitSha){
     const cfg=loadGithubConfig(); if(!cfg.repo||!cfg.token) return;
     if(!confirm('فقط اطلاعات کارت‌های بانکی از این نسخه تاریخی بازیابی شود؟ سایر اطلاعات فعلی دست‌نخورده می‌مانند.')) return;
-    createRecoverySnapshot('قبل از بازیابی کارت‌ها از تاریخچه GitHub');
     const status=document.getElementById('backupHistoryStatus'); status.className='mini-status'; status.textContent='در حال دریافت کارت‌های نسخه انتخاب‌شده...';
+    if(!await createRecoverySnapshot('قبل از بازیابی کارت‌ها از تاریخچه GitHub')){status.className='mini-status warn';status.textContent='ساخت Snapshot بازیابی ناموفق بود؛ کارت‌ها تغییر نکردند.';return;}
     try{
       const api=githubApiBase(cfg);
       const r=await fetchWithTimeout(`${api}?ref=${encodeURIComponent(commitSha)}`,{headers:githubHeaders(cfg),cache:'no-store'},10000);
       if(!r.ok){ const ej=await r.json().catch(()=>({})); throw new Error(r.status+' '+(ej.message||'')); }
       const j=await r.json(); const data=JSON.parse(base64ToUtf8(j.content));
       if(!(data.cardsBlob&&data.cardsBlob.salt&&data.cardsBlob.iv&&data.cardsBlob.data)) throw new Error('این نسخه کارت بانکی در بکاپ ندارد');
-      restoreCardsBlobFromPayload(data.cardsBlob,true);
+      await restoreCardsBlobFromPayload(data.cardsBlob,true);
       status.className='mini-status ok'; status.textContent='کارت‌های نسخه انتخاب‌شده بازیابی شدند. سایر داده‌ها تغییر نکردند. برای ثبت این وضعیت در GitHub، یک Push انجام دهید.';
       render();
     }catch(err){ status.className='mini-status warn'; status.textContent='بازیابی کارت‌ها ناموفق بود: '+((err&&err.message)||'خطای نامشخص'); }
@@ -4844,7 +4927,7 @@ ${fmtMoney(ex.amount)} ${moneyUnit()} — ${ex.date}
       return;
     }
     if(!updateReadyWorker){ toast('نسخه جدید هنوز کامل آماده نشده است'); return; }
-    createRecoverySnapshot(`قبل از بروزرسانی از ${APP_VERSION} به ${(latestVersionInfo&&latestVersionInfo.version)||'نسخه جدید'}`);
+    if(!await createRecoverySnapshot(`قبل از بروزرسانی از ${APP_VERSION} به ${(latestVersionInfo&&latestVersionInfo.version)||'نسخه جدید'}`)){toast('ساخت Snapshot بازیابی ناموفق بود؛ بروزرسانی متوقف شد');return;}
     sessionStorage.setItem('qestban-update-reload','1'); updateReadyWorker.postMessage({type:'SKIP_WAITING'}); updateUpdateStatus('در حال فعال‌سازی نسخه جدید...','ok');
   };
 
@@ -4869,13 +4952,13 @@ ${fmtMoney(ex.amount)} ${moneyUnit()} — ${ex.date}
     const file = e.target.files[0];
     if (!file) return;
     const reader = new FileReader();
-    reader.onload = () => {
+    reader.onload = async () => {
       try{
         const data = JSON.parse(reader.result);
-        const summary = applyRemotePayload(data);
+        const summary = await applyRemotePayload(data);
         if (summary) toast(`وارد شد: ${summary} — برای بازگشت از واگرد استفاده کنید`);
       }catch(err){
-        alert('فایل معتبر نیست.');
+        alert(err.message || 'خواندن یا ذخیره فایل ناموفق بود.');
       }
     };
     reader.readAsText(file);
@@ -4985,7 +5068,7 @@ ${fmtMoney(ex.amount)} ${moneyUnit()} — ${ex.date}
   });
 
   // ================= Encrypted payment cards =================
-  const CARDS_KEY = "installments-cards-blob-v1";
+
   let cardsPlain = null;        // decrypted array, only in memory while unlocked
   let sessionPassphrase = null; // kept in memory only while unlocked
   let cardsRestorePendingNotice = false; // true after Backup/Pull restores a locked card blob
@@ -5055,14 +5138,16 @@ ${fmtMoney(ex.amount)} ${moneyUnit()} — ${ex.date}
     const plainBuf = await crypto.subtle.decrypt({name:'AES-GCM', iv}, key, b64ToBuf(blob.data));
     return JSON.parse(new TextDecoder().decode(plainBuf));
   }
-  function loadCardsBlob(){
-    try{ const raw = localStorage.getItem(CARDS_KEY); return raw ? JSON.parse(raw) : null; }
-    catch(e){ return null; }
+  function loadCardsBlob(){return cardsCache;}
+  async function saveCardsBlob(blob,markDirty=true){
+    await commitData(state,blob);cardsCache=blob;if(markDirty)markLocalDirty();
   }
-  function saveCardsBlob(blob, markDirty = true){ localStorage.setItem(CARDS_KEY, JSON.stringify(blob)); if(markDirty) markLocalDirty(); }
-  function restoreCardsBlobFromPayload(blob, markDirty){
+  async function restoreCardsBlobFromPayload(blob,markDirty){
+    await saveCardsBlob(blob,markDirty);refreshRestoredCards();
+  }
+  function refreshRestoredCards(){
+    const blob=cardsCache;
     const previousPass = sessionPassphrase;
-    saveCardsBlob(blob, markDirty);
     cardsPlain = null; revealed = {};
     cardsRestorePendingNotice = true;
     if (previousPass){
@@ -5084,7 +5169,7 @@ ${fmtMoney(ex.amount)} ${moneyUnit()} — ${ex.date}
   }
   async function persistCards(){
     const blob = await encryptCards(sessionPassphrase, cardsPlain);
-    saveCardsBlob(blob);
+    await saveCardsBlob(blob);
   }
 
   document.getElementById('btnChangeCardsPassword').onclick = async () => {
@@ -5102,7 +5187,7 @@ ${fmtMoney(ex.amount)} ${moneyUnit()} — ${ex.date}
     if (newPass2 === null) return;
     if (newPass !== newPass2){ alert('دو رمز جدید یکسان نبودند — چیزی تغییر نکرد.'); return; }
     const newBlob = await encryptCards(newPass, plain);
-    saveCardsBlob(newBlob);
+    await saveCardsBlob(newBlob);
     cardsPlain = null; sessionPassphrase = null; revealed = {};
     render();
     alert('رمز کارت‌ها با موفقیت عوض شد.\n\nیادتان باشد: نسخه‌ای که قبلاً روی گیت‌هاب ارسال کرده بودید هنوز رمز قدیمی را دارد — برای این‌که همه‌جا هماهنگ باشد، یک‌بار «ارسال به گیت‌هاب» بزنید.');
@@ -5126,15 +5211,15 @@ ${fmtMoney(ex.amount)} ${moneyUnit()} — ${ex.date}
     const file = e.target.files[0];
     if (!file) return;
     const reader = new FileReader();
-    reader.onload = () => {
+    reader.onload = async () => {
       try{
         const blob = JSON.parse(reader.result);
         if (!blob.salt || !blob.iv || !blob.data) throw new Error('invalid');
         if (!confirm('کارت‌های بانکی فعلی (در همین دستگاه) با این فایل جایگزین می‌شوند. ادامه؟')) return;
-        restoreCardsBlobFromPayload(blob, true);
+        await restoreCardsBlobFromPayload(blob, true);
         render();
       }catch(err){
-        alert('فایل معتبر نیست.');
+        alert(err.message || 'خواندن یا ذخیره فایل ناموفق بود.');
       }
     };
     reader.readAsText(file);
@@ -5400,7 +5485,7 @@ ${fmtMoney(ex.amount)} ${moneyUnit()} — ${ex.date}
       new Notification('قسط‌بان', {body, tag: 'installments-due'});
     }catch(e){}
     notifiedLog.ids.push(...urgent.map(l => l.id));
-    localStorage.setItem(NOTIFY_KEY, JSON.stringify(notifiedLog));
+    try{localStorage.setItem(NOTIFY_KEY, JSON.stringify(notifiedLog));}catch(e){}
   }
   updateNotifyButton();
 
@@ -5427,7 +5512,7 @@ ${fmtMoney(ex.amount)} ${moneyUnit()} — ${ex.date}
       new Notification('قسط‌بان', {body, tag: 'installments-pending-check'});
     }catch(e){}
     notifiedLog.ids.push(...candidates.map(l => l.id));
-    localStorage.setItem(NOTIFY_PENDING_KEY, JSON.stringify(notifiedLog));
+    try{localStorage.setItem(NOTIFY_PENDING_KEY, JSON.stringify(notifiedLog));}catch(e){}
   }
 
   document.getElementById('btnUndo').onclick = doUndo;
@@ -5723,18 +5808,22 @@ ${fmtMoney(ex.amount)} ${moneyUnit()} — ${ex.date}
 
   updateUndoRedoButtons();
 
-  const beforeMigration=JSON.stringify(state);
   normalizeLedger(state);
-  if(JSON.stringify(state)!==beforeMigration){
-    try{if(!localStorage.getItem('installments-before-v4'))localStorage.setItem('installments-before-v4',JSON.stringify({state:JSON.parse(beforeMigration),cardsBlob:loadCardsBlob(),createdAt:new Date().toISOString()}));}catch(e){}
-  }
   runAutoConfirmChecks();
-  save(false);
+  // Render even when persistence is unavailable; never leave a blank ledger on quota errors.
   render();
+  const startupSaved=await save(false);
+  if(startupSaved && !bootRecord){
+    // The archive and authoritative active record both committed before releasing old quota.
+    try{for(const key of [STORE_KEY,CARDS_KEY,UNDO_KEY,RECOVERY_KEY,'installments-before-v4'])localStorage.removeItem(key);}catch(e){}
+  }
+  document.documentElement.dataset.storageReady='1';
   checkAndNotifyDueLoans();
   checkAndNotifyPendingLoans();
   initOfflineRuntime();
-})();
+})().catch(error=>{
+  const box=document.createElement('div');box.setAttribute('role','alert');box.style.cssText='padding:20px;background:#fff3cd;color:#652218';box.textContent='راه‌اندازی برنامه متوقف شد؛ اطلاعات مرورگر را پاک نکنید. '+error.message;document.body.prepend(box);
+});
 </script>
 </body>
 </html>
