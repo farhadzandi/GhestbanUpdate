@@ -1328,6 +1328,11 @@
       <input type="checkbox" id="fAutoDebit" style="width:auto; margin:0;">
       <label for="fAutoDebit" style="margin:0; padding:0;">برداشت خودکار توسط بانک</label>
     </div>
+    <div class="field" id="autoDebitCardField">
+      <label>کارت / حساب برداشت خودکار (اختیاری)</label>
+      <input type="text" id="fAutoDebitCard" inputmode="numeric" maxlength="26" placeholder="شماره کارت ۱۶ رقمی یا شماره حساب">
+      <div class="mini-status">برای پست‌بانک و سایر اقساطی که بانک به‌صورت خودکار برداشت می‌کند.</div>
+    </div>
     <div class="modal-actions">
       <button class="ghost" id="btnDeleteLoan" style="display:none;">حذف</button>
       <button class="ghost" id="btnCancelLoan">انصراف</button>
@@ -3289,6 +3294,7 @@
     document.getElementById('fCycle').value = src ? toFa(src.cycleMonths || 1) : '۱';
     document.getElementById('fRate').value = src && src.rate ? toFa(src.rate) : '';
     document.getElementById('fAutoDebit').checked = src ? !!src.autoDebit : false;
+    document.getElementById('fAutoDebitCard').value = src ? (src.autoDebitCard || '') : '';
     if (loan){
       scheduleDraft = getLoanSchedule(loan);
     } else if (prefill){
@@ -3386,6 +3392,7 @@
       cycleMonths: Math.max(readNum('fCycle'), 1),
       rate: readNum('fRate'),
       autoDebit: document.getElementById('fAutoDebit').checked,
+      autoDebitCard: document.getElementById('fAutoDebitCard').value.trim(),
       icon: iconVal
     };
     if (editingLoanId){
