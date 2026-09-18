@@ -46,3 +46,9 @@ body.gh-mobile .gh-sheet{bottom:calc(var(--gh-nav) + var(--gh-safe-bottom))!impo
 body.gh-mobile .gh-sheet-card{padding-bottom:18px!important}
 body.gh-mobile .gh-lock{bottom:calc(var(--gh-nav) + var(--gh-safe-bottom))!important;z-index:1000!important}
 body.gh-mobile .gh-lock-card{padding-bottom:22px!important}
+
+/* beta.2 UX hotfixes */
+body.gh-mobile #connectivityPill{cursor:pointer;touch-action:manipulation}body.gh-mobile #connectivityPill::after{content:' ↻';font-size:12px}
+body.gh-mobile .toast{z-index:2600!important;bottom:calc(var(--gh-nav) + var(--gh-safe-bottom) + 18px)!important;max-width:calc(100vw - 32px);text-align:center}
+body.gh-mobile .sync-panel{z-index:2550!important;bottom:calc(var(--gh-nav) + var(--gh-safe-bottom) + 18px)!important}
+body.gh-mobile .gh-settings-page{z-index:2400!important}
