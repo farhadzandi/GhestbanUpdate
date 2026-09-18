@@ -12,3 +12,5 @@ await copyFile('mobile/settings.js','www/settings.js');
 await copyFile('mobile/data.js','www/data.js');
 await copyFile('mobile/android.js','www/android.js');
 console.log('Ghestban Android assets prepared in www/');
+
+await copyFile('mobile/rescue.html','www/rescue.html');
