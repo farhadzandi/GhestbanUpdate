@@ -1,0 +1,6 @@
+{
+  "appId": "ir.ghestban.app",
+  "appName": "قسطبان",
+  "webDir": "www",
+  "server": { "androidScheme": "https" }
+}
