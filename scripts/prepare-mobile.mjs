@@ -6,7 +6,8 @@ html = html.replace('</head>', '<link rel="stylesheet" href="mobile.css">\n</hea
            .replace('</body>', '<script src="mobile.js"></script>\n<script src="wizard.js"></script>\n<script src="onboarding.js"></script>\n<script src="settings.js"></script>\n<script src="data.js"></script>\n<script src="android.js"></script>\n</body>');
 await writeFile('www/index.html', html);
 await copyFile('mobile/mobile.css','www/mobile.css');
-await copyFile('mobile/mobile.js','www/mobile.js');\nawait copyFile('mobile/wizard.js','www/wizard.js');
+await copyFile('mobile/mobile.js','www/mobile.js');
+await copyFile('mobile/wizard.js','www/wizard.js');
 await copyFile('mobile/onboarding.js','www/onboarding.js');
 await copyFile('mobile/settings.js','www/settings.js');
 await copyFile('mobile/data.js','www/data.js');
