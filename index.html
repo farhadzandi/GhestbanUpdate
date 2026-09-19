@@ -3225,13 +3225,15 @@
   }
   function renderInstallmentScheduleHtml(l){
     const schedule=getLoanSchedule(l); if(!schedule.length)return '';
-    const compact=schedule.length>24, paid=schedule.filter(x=>x.paid).length;
-    const open=compact || schedule.length<=12 || !!historyOpen['sch_'+l.id];
-    const cells= open ? schedule.map(item=>{
-      const st=scheduleItemStatus(item), label={paid:'پرداخت‌شده',overdue:'سررسید گذشته',upcoming:'نزدیک سررسید',open:'در انتظار'}[st];
-      return `<button type="button" class="inst-cell ${st}" data-action="instancedetail" data-id="${escapeHtml(l.id)}" data-instid="${escapeHtml(item.id)}" title="قسط ${toFa(item.seq)} — ${label}" aria-label="قسط ${toFa(item.seq)}، ${label}"><b>${toFa(item.seq)}</b><span>${item.paid?'✓':st==='overdue'?'!':st==='upcoming'?'◷':'—'}</span>${compact?'':`<small>${escapeHtml(item.dueDate||'بدون سررسید')}<br>${fmtMoney(item.amount)} ${moneyUnit()}</small>`}</button>`;
-    }).join('') : '';
-    return `<div class="installments-block"><div class="installments-title"><span>اقساط — ${toFa(paid)} از ${toFa(schedule.length)} پرداخت‌شده</span>${!compact&&schedule.length>12?`<button class="ghost small" data-action="toggleschedule" data-id="${escapeHtml(l.id)}">${open?'بستن':'نمایش همه'}</button>`:''}</div>${open?`<div class="inst-legend">✓ پرداخت‌شده · ! معوق · ◷ نزدیک سررسید · — در انتظار<br>برای جزئیات، روی شماره قسط بزنید.</div><div class="inst-grid ${compact?'compact':''}">${cells}</div>`:''}</div>`;
+    const paidItems=schedule.filter(x=>x.paid), unpaid=schedule.filter(x=>!x.paid), paid=paidItems.length, total=schedule.length;
+    const expanded=!!historyOpen['sch_'+l.id], compact=total>12;
+    const cell=item=>{const st=scheduleItemStatus(item),label={paid:'پرداخت‌شده',overdue:'سررسید گذشته',upcoming:'نزدیک سررسید',open:'در انتظار'}[st];return `<button type="button" class="inst-cell ${st}" data-action="instancedetail" data-id="${escapeHtml(l.id)}" data-instid="${escapeHtml(item.id)}" title="قسط ${toFa(item.seq)} — ${label}" aria-label="قسط ${toFa(item.seq)}، ${label}"><b>${toFa(item.seq)}</b><span>${item.paid?'✓':st==='overdue'?'!':st==='upcoming'?'◷':'—'}</span><small>${escapeHtml(item.dueDate||'بدون سررسید')}<br>${fmtMoney(item.amount)} ${moneyUnit()}</small></button>`};
+    if(!compact) return `<div class="installments-block"><div class="installments-title"><span>اقساط — ${toFa(paid)} از ${toFa(total)} پرداخت‌شده</span></div><div class="inst-legend">✓ پرداخت‌شده · ! معوق · ◷ نزدیک سررسید · — در انتظار</div><div class="inst-grid">${schedule.map(cell).join('')}</div></div>`;
+    const next=unpaid[0], paidText=paid?(`قسط‌های ۱ تا ${toFa(paid)} پرداخت شده`):'هنوز قسطی پرداخت نشده';
+    const overdue=unpaid.filter(x=>scheduleItemStatus(x)==='overdue').length;
+    const summary=`<div class="inst-summary"><div><b>${toFa(paid)} از ${toFa(total)}</b><span>قسط پرداخت شده</span></div><progress max="${total}" value="${paid}"></progress><p>✓ ${paidText}</p>${next?`<p class="next">قسط بعدی: <b>${toFa(next.seq)}</b>${next.dueDate?' · '+escapeHtml(next.dueDate):''} · ${fmtMoney(next.amount)} ${moneyUnit()}</p>`:''}${overdue?`<p class="overdue-note">⚠ ${toFa(overdue)} قسط سررسید گذشته</p>`:''}</div>`;
+    const details=expanded?`<div class="inst-expanded"><div class="inst-section-title">اقساط باقی‌مانده (${toFa(unpaid.length)})</div><div class="inst-grid compact">${unpaid.map(cell).join('')}</div>${paid?`<details><summary>${toFa(paid)} قسط پرداخت‌شده</summary><div class="inst-grid compact paid-history">${paidItems.map(cell).join('')}</div></details>`:''}</div>`:'';
+    return `<div class="installments-block compact-summary"><div class="installments-title"><span>وضعیت اقساط</span><button class="ghost small" data-action="toggleschedule" data-id="${escapeHtml(l.id)}">${expanded?'بستن جزئیات':'نمایش بیشتر'}</button></div>${summary}${details}</div>`;
   }
   function openInstallmentDetail(loanId,instId){
     const l=state.loans.find(x=>x.id===loanId); if(!l)return;
