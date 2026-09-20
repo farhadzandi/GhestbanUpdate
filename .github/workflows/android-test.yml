@@ -39,6 +39,40 @@ jobs:
           sed -i 's/versionCode [0-9]\+/versionCode 312001/g' android/app/build.gradle
           sed -i 's/versionName "[^"]*"/versionName "3.12.0-alpha.1"/g' android/app/build.gradle
       - run: npx cap sync android
+      - name: Install Ghestban native SMS bridge
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          manifest=Path('android/app/src/main/AndroidManifest.xml')
+          s=manifest.read_text()
+          perm='<uses-permission android:name="android.permission.RECEIVE_SMS" />'
+          if perm not in s: s=s.replace('<application',perm+'\n    <application')
+          receiver='''<receiver android:name=".GhestbanSmsReceiver" android:exported="true" android:permission="android.permission.BROADCAST_SMS">
+              <intent-filter android:priority="500">
+                  <action android:name="android.provider.Telephony.SMS_RECEIVED" />
+              </intent-filter>
+          </receiver>'''
+          if 'GhestbanSmsReceiver' not in s: s=s.replace('</application>',receiver+'\n    </application>')
+          manifest.write_text(s)
+          java=Path('android/app/src/main/java/ir/ghestban/app/GhestbanSmsReceiver.java')
+          java.parent.mkdir(parents=True,exist_ok=True)
+          java.write_text(r'''package ir.ghestban.app;
+          import android.content.*;
+          import android.os.Bundle;
+          import android.provider.Telephony;
+          import android.telephony.SmsMessage;
+          public class GhestbanSmsReceiver extends BroadcastReceiver {
+            @Override public void onReceive(Context context, Intent intent) {
+              if (!Telephony.Sms.Intents.SMS_RECEIVED_ACTION.equals(intent.getAction())) return;
+              StringBuilder body=new StringBuilder(); String sender="";
+              for (SmsMessage m: Telephony.Sms.Intents.getMessagesFromIntent(intent)) {
+                if (m==null) continue; body.append(m.getMessageBody()); if(sender.isEmpty()) sender=m.getOriginatingAddress();
+              }
+              Intent i=new Intent("ir.ghestban.app.BANK_SMS"); i.setPackage(context.getPackageName());
+              i.putExtra("body",body.toString()); i.putExtra("sender",sender); context.sendBroadcast(i);
+            }
+          }''')
+          PY
       - name: Build debug APK
         working-directory: android
         run: ./gradlew assembleDebug
