@@ -21,7 +21,7 @@ jobs:
       - run: node scripts/prepare-mobile.mjs
       - run: npx cap add android
       - name: Install icon generator dependency
-        run: python -m pip install --disable-pip-version-check pillow
+        run: python -m pip install --disable-pip-check pillow || python -m pip install --disable-pip-version-check pillow
       - name: Generate branded launcher icons
         run: |
           python - <<'PY'
@@ -32,19 +32,17 @@ jobs:
           for d,s in sizes.items():
               p=Path('android/app/src/main/res')/('mipmap-'+d); p.mkdir(parents=True,exist_ok=True)
               im=src.resize((s,s),Image.Resampling.LANCZOS)
-              im.save(p/'ic_launcher.png')
-              im.save(p/'ic_launcher_round.png')
-              im.save(p/'ic_launcher_foreground.png')
+              im.save(p/'ic_launcher.png'); im.save(p/'ic_launcher_round.png'); im.save(p/'ic_launcher_foreground.png')
           PY
-      - name: Set stable Android version
+      - name: Set Android version
         run: |
-          sed -i 's/versionCode [0-9]\\+/versionCode 310801/g' android/app/build.gradle
-          sed -i 's/versionName "[^"]*"/versionName "3.10.8-beta.1"/g' android/app/build.gradle
+          sed -i 's/versionCode [0-9]\+/versionCode 311001/g' android/app/build.gradle
+          sed -i 's/versionName "[^"]*"/versionName "3.11.0-beta.1"/g' android/app/build.gradle
       - run: npx cap sync android
       - name: Build debug APK
         working-directory: android
         run: ./gradlew assembleDebug
       - uses: actions/upload-artifact@v4
         with:
-          name: Ghestban-Mobile-3.10.8-beta.1
+          name: Ghestban-Mobile-3.11.0-beta.1
           path: android/app/build/outputs/apk/debug/app-debug.apk
