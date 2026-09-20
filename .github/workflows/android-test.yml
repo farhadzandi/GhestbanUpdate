@@ -2,7 +2,7 @@ name: Build Android Test APK
 on:
   workflow_dispatch:
   push:
-    branches: [feature/android-mobile-v1]
+    branches: [feature/android-mobile-v1, feature/ghestban-next]
 permissions:
   contents: read
 jobs:
@@ -36,13 +36,13 @@ jobs:
           PY
       - name: Set Android version
         run: |
-          sed -i 's/versionCode [0-9]\+/versionCode 311001/g' android/app/build.gradle
-          sed -i 's/versionName "[^"]*"/versionName "3.11.0-beta.1"/g' android/app/build.gradle
+          sed -i 's/versionCode [0-9]\+/versionCode 312001/g' android/app/build.gradle
+          sed -i 's/versionName "[^"]*"/versionName "3.12.0-alpha.1"/g' android/app/build.gradle
       - run: npx cap sync android
       - name: Build debug APK
         working-directory: android
         run: ./gradlew assembleDebug
       - uses: actions/upload-artifact@v4
         with:
-          name: Ghestban-Mobile-3.11.0-beta.1
+          name: Ghestban-Next-3.12.0-alpha.1
           path: android/app/build/outputs/apk/debug/app-debug.apk
