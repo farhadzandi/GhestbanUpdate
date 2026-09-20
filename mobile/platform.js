@@ -1,0 +1,23 @@
+(()=>{
+const KEYS={accounts:'ghestban_accounts_v1',tx:'ghestban_transactions_v1',inbox:'ghestban_transaction_inbox_v1',family:'ghestban_household_v2',notifications:'ghestban_notifications_v1',audit:'ghestban_audit_v1',flags:'ghestban_feature_flags_v1'};
+const defaults={SERVER_MODE:false,LICENSE_SERVER:false,OTP_ENABLED:false,CLOUD_SYNC:false,BANK_SHAHR_SMS:false};
+const load=(k,d)=>{try{return JSON.parse(localStorage.getItem(k)||'null')??d}catch{return d}},save=(k,v)=>localStorage.setItem(k,JSON.stringify(v));
+const id=()=>crypto.randomUUID?.()||('g_'+Date.now()+'_'+Math.random().toString(36).slice(2));
+const flags=()=>({...defaults,...load(KEYS.flags,{})});
+function audit(action,entity,detail={}){const a=load(KEYS.audit,[]);a.unshift({id:id(),at:new Date().toISOString(),action,entity,...detail});save(KEYS.audit,a.slice(0,500))}
+function notify(title,body,type='system'){const a=load(KEYS.notifications,[]);a.unshift({id:id(),at:new Date().toISOString(),title,body,type,read:false});save(KEYS.notifications,a.slice(0,200));document.dispatchEvent(new CustomEvent('ghestban:notifications'))}
+function family(){let h=load(KEYS.family,null);if(!h){h={id:id(),name:'خانواده من',members:[{id:'owner-local',name:'مدیر',role:'owner',status:'active'}]};save(KEYS.family,h)}return h}
+function addMember(m){const h=family();h.members.push({id:id(),name:m.name||'عضو خانواده',contact:m.contact||'',role:m.role||'viewer',status:'local'});save(KEYS.family,h);audit('member.add','family',{role:m.role});return h}
+function accounts(){return load(KEYS.accounts,[])}
+function addAccount(a){const x=accounts();const rec={id:id(),ownerId:a.ownerId||'owner-local',bank:a.bank||'',label:a.label||'',type:a.type||'card',number:a.number||'',smsMonitor:!!a.smsMonitor,active:true};x.push(rec);save(KEYS.accounts,x);audit('account.add','account',{id:rec.id,bank:rec.bank});return rec}
+function transactions(){return load(KEYS.tx,[])}
+function addTransaction(t){const x=transactions(),rec={id:id(),at:t.at||new Date().toISOString(),kind:t.kind||'expense',amount:Number(t.amount)||0,accountId:t.accountId||'',accountOwnerId:t.accountOwnerId||'',performedBy:t.performedBy||'',recordedBy:t.recordedBy||'owner-local',category:t.category||'',note:t.note||'',source:t.source||'manual'};x.unshift(rec);save(KEYS.tx,x);audit('transaction.add','transaction',{id:rec.id,kind:rec.kind,amount:rec.amount});return rec}
+function inbox(){return load(KEYS.inbox,[])}
+function addCandidate(c){const x=inbox(),fingerprint=c.fingerprint||[c.source,c.amount,c.at,c.accountHint].join('|');if(x.some(v=>v.fingerprint===fingerprint&&v.status==='pending'))return null;const rec={id:id(),createdAt:new Date().toISOString(),status:'pending',source:c.source||'manual',amount:Number(c.amount)||0,direction:c.direction||'expense',accountHint:c.accountHint||'',rawRef:c.rawRef||'',fingerprint,suggestedKind:c.suggestedKind||c.direction};x.unshift(rec);save(KEYS.inbox,x);notify('تراکنش منتظر تأیید',(rec.direction==='income'?'واریز ':'برداشت ')+rec.amount.toLocaleString('fa-IR')+' تومان','transaction');return rec}
+function resolveCandidate(cid,kind,extra={}){const x=inbox(),c=x.find(v=>v.id===cid);if(!c)return null;c.status='accepted';c.resolvedAt=new Date().toISOString();c.resolution=kind;save(KEYS.inbox,x);return addTransaction({...extra,kind,amount:c.amount,source:c.source})}
+function ignoreCandidate(cid){const x=inbox(),c=x.find(v=>v.id===cid);if(c){c.status='ignored';c.resolvedAt=new Date().toISOString();save(KEYS.inbox,x);audit('candidate.ignore','transaction',{id:cid})}}
+function notifications(){return load(KEYS.notifications,[])}
+function markRead(nid){const x=notifications(),n=x.find(v=>v.id===nid);if(n)n.read=true;save(KEYS.notifications,x)}
+function parseShahrSms(text){const s=String(text||'').replace(/[۰-۹]/g,d=>'۰۱۲۳۴۵۶۷۸۹'.indexOf(d)).replace(/[٠-٩]/g,d=>'٠١٢٣٤٥٦٧٨٩'.indexOf(d));if(!/شهر|bank.?shahr/i.test(s))return null;const m=s.match(/(?:مبلغ|برداشت|واریز|خرید|انتقال)[^0-9]{0,15}([0-9][0-9,٬ ]{2,})/i)||s.match(/([0-9][0-9,٬ ]{3,})\s*(?:ریال|تومان)/);if(!m)return null;let amount=Number(m[1].replace(/[^0-9]/g,''));if(/ریال/.test(s)&&!/تومان/.test(s))amount=Math.round(amount/10);const income=/واریز|بستانکار|واریزی/.test(s)&&!/برداشت|خرید/.test(s);return {source:'bank-shahr-sms',amount,direction:income?'income':'expense',accountHint:(s.match(/(?:کارت|حساب)[^0-9]*([0-9*]{4,})/)||[])[1]||'',rawRef:'local-sms'} }
+window.GhestbanPlatform={KEYS,flags,setFlags:x=>save(KEYS.flags,{...flags(),...x}),family,addMember,accounts,addAccount,transactions,addTransaction,inbox,addCandidate,resolveCandidate,ignoreCandidate,notifications,markRead,audit,notify,parseShahrSms};
+})();
