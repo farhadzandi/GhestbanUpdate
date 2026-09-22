@@ -34,7 +34,9 @@
   function queue(){try{return JSON.parse(localStorage.getItem(OUTBOX)||'[]')}catch{return[]}}
   function setQueue(q){localStorage.setItem(OUTBOX,JSON.stringify(q.slice(-500)))}
   function enqueue(kind,payload={}){
-    const q=queue(),v={id:(crypto.randomUUID?.()||('q_'+Date.now())),kind,payload,createdAt:now(),attempts:0,lastError:null};q.push(v);setQueue(q);return v;
+    let q=queue();
+    if(kind==='sync.snapshot')q=q.filter(x=>x.kind!=='sync.snapshot');
+    const v={id:(crypto.randomUUID?.()||('q_'+Date.now())),kind,payload,createdAt:now(),attempts:0,lastError:null};q.push(v);setQueue(q);return v;
   }
   function markQueue(id,patch){const q=queue(),i=q.findIndex(x=>x.id===id);if(i>=0){q[i]={...q[i],...patch};setQueue(q)}return i>=0}
   function removeQueue(id){setQueue(queue().filter(x=>x.id!==id))}
