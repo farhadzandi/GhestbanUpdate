@@ -1,0 +1,36 @@
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - ghestban_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks: [ghestban]
+
+  api:
+    build: ./app
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+      GH_API_BEARER: ${GH_API_BEARER}
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:18080:8000"
+    networks: [ghestban]
+
+volumes:
+  ghestban_pgdata:
+
+networks:
+  ghestban:
+    driver: bridge
