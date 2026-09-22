@@ -6,6 +6,7 @@ import psycopg
 from fastapi import FastAPI, Header, HTTPException, Query
 from pydantic import BaseModel, Field
 from psycopg.rows import dict_row
+from psycopg.types.json import Jsonb
 
 APP_VERSION = "3.12.0-alpha.1"
 DATABASE_URL = os.environ.get("DATABASE_URL", "")
@@ -93,7 +94,7 @@ def put_snapshot(
                 updated_at = NOW()
             RETURNING household_id, revision, updated_at;
             """,
-            (body.householdId, psycopg.types.json.Jsonb(body.payload)),
+            (body.householdId, Jsonb(body.payload)),
         )
         row = cur.fetchone()
         con.commit()
