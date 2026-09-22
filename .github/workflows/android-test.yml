@@ -15,7 +15,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: '21'
@@ -23,7 +23,7 @@ jobs:
       - run: node scripts/prepare-mobile.mjs
       - run: npx cap add android
       - name: Install icon generator dependency
-        run: python -m pip install --disable-pip-check pillow || python -m pip install --disable-pip-version-check pillow
+        run: python -m pip install --disable-pip-version-check pillow
       - name: Generate branded launcher icons
         run: |
           python - <<'PY'
@@ -146,7 +146,7 @@ jobs:
               super.onCreate(savedInstanceState);
             }
 
-            @Override protected void onStart() {
+            @Override public void onStart() {
               super.onStart();
               if (!receiverRegistered) {
                 ContextCompat.registerReceiver(this, smsWake, new IntentFilter(GhestbanSmsReceiver.ACTION), ContextCompat.RECEIVER_NOT_EXPORTED);
@@ -154,12 +154,12 @@ jobs:
               }
             }
 
-            @Override protected void onResume() {
+            @Override public void onResume() {
               super.onResume();
               drainSmsQueue();
             }
 
-            @Override protected void onStop() {
+            @Override public void onStop() {
               if (receiverRegistered) {
                 try { unregisterReceiver(smsWake); } catch (Exception ignored) {}
                 receiverRegistered = false;
